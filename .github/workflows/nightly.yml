@@ -62,10 +62,17 @@ jobs:
             macos: false
             rpm: true
             wix: false
-          - id: macos-universal
+          - id: macos-x64
             os: macos-15-intel
             platform: darwin
-            arch: universal
+            arch: x64
+            macos: true
+            rpm: false
+            wix: false
+          - id: macos-arm64
+            os: macos-15-intel
+            platform: darwin
+            arch: arm64
             macos: true
             rpm: false
             wix: false
@@ -158,8 +165,8 @@ jobs:
           zip_file="$(find out/make -type f -name '*.zip' -print -quit)"
           test "$(find out/make -type f -name '*.dmg' | wc -l | tr -d ' ')" -eq 1
           test "$(find out/make -type f -name '*.zip' | wc -l | tr -d ' ')" -eq 1
-          [[ "$dmg_file" == *-universal.dmg ]]
-          [[ "$zip_file" == *-universal-*.zip ]]
+          [[ "$dmg_file" == *-${{ matrix.arch }}.dmg ]]
+          [[ "$zip_file" == *-${{ matrix.arch }}-*.zip ]]
           if find out/make -type f -name 'RELEASES.json' -print -quit | grep -q .; then
             echo "macOS update manifests must not be created."
             exit 1

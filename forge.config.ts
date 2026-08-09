@@ -113,8 +113,8 @@ const config: ForgeConfig = {
         ...linuxNightlyVersion,
       },
     }),
-    // This makes a universal app (Intel + Apple Silicon) when invoked with
-    // --platform=darwin --arch=universal. No signing or update manifest is set.
+    // macOS jobs invoke this once per architecture. No signing or update
+    // manifest is set, so the resulting nightly DMG and ZIP stay offline-only.
     new MakerDMG(),
     new MakerZIP({}, ["darwin"]),
   ],

@@ -54,7 +54,8 @@ Nightly builds are created automatically from every change merged into `main`. T
 | Platform            | Download       | Install                                      |
 | ------------------- | -------------- | -------------------------------------------- |
 | Windows x64         | `wh_notes.msi` | Run the standard MSI installer.              |
-| macOS universal     | `.dmg`         | Open it and drag `wh_notes` to Applications. |
+| macOS Intel         | `*-x64.dmg`    | Open it and drag `wh_notes` to Applications. |
+| macOS Apple Silicon | `*-arm64.dmg`  | Open it and drag `wh_notes` to Applications. |
 | Debian / Ubuntu x64 | `.deb`         | `sudo apt install ./wh-notes_*.deb`          |
 | Fedora / RHEL x64   | `.rpm`         | `sudo dnf install ./wh-notes-*.rpm`          |
 

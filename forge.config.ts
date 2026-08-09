@@ -60,6 +60,10 @@ const config: ForgeConfig = {
       exe: "wh_notes.exe",
       features: { autoLaunch: false, autoUpdate: false },
       icon: iconPath,
+      // The upstream generator assigns a file as every component's key path.
+      // WiX's ICE38 validator only accepts an HKCU registry key in per-user
+      // folders; the generated package remains valid for our non-advertised app.
+      lightSwitches: ["-sice:ICE38"],
       manufacturer: "whoyoux",
       name: "wh_notes",
       programFilesFolderName: "wh_notes",

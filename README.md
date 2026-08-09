@@ -49,7 +49,7 @@ The interface is intentionally small and native-feeling: a focused notes sidebar
 
 Nightly builds are created automatically from every change merged into `main`. They are useful for trying the newest version before the first signed stable release.
 
-> Nightly installers are currently **unsigned**. Windows may show a SmartScreen warning and macOS may show a Gatekeeper warning. Download only from this repository's [Releases](https://github.com/whoyoux/wh_notes/releases) page and verify the included SHA-256 checksum.
+> Nightly installers are not signed with an Apple Developer certificate or notarized. Windows may show a SmartScreen warning and macOS may show a Gatekeeper warning. Download only from this repository's [Releases](https://github.com/whoyoux/wh_notes/releases) page and verify the included SHA-256 checksum.
 
 | Platform            | Download       | Install                                      |
 | ------------------- | -------------- | -------------------------------------------- |

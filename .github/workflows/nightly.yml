@@ -124,8 +124,22 @@ jobs:
           echo "WH_NOTES_NIGHTLY_VERSION=$version" >> "$GITHUB_ENV"
           WH_NOTES_NIGHTLY_VERSION="$version" node scripts/set-build-version.mjs "$version"
 
-      - name: Build installer
+      - name: Build Windows and Linux installers
+        if: ${{ !matrix.macos }}
         run: npm run make -- --platform=${{ matrix.platform }} --arch=${{ matrix.arch }}
+
+      - name: Build and ad-hoc sign macOS archives
+        if: matrix.macos
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/generate-macos-icon.mjs
+          npm run package -- --platform=${{ matrix.platform }} --arch=${{ matrix.arch }}
+          app_path="out/wh_notes-darwin-${{ matrix.arch }}/wh_notes.app"
+          test -d "$app_path"
+          codesign --force --deep --sign - "$app_path"
+          codesign --verify --deep --strict --verbose=2 "$app_path"
+          npm run make -- --skip-package --platform=${{ matrix.platform }} --arch=${{ matrix.arch }}
 
       - name: Verify the Windows MSI is per-user and has no updater
         if: matrix.wix
@@ -167,6 +181,9 @@ jobs:
           test "$(find out/make -type f -name '*.zip' | wc -l | tr -d ' ')" -eq 1
           [[ "$dmg_file" == *-${{ matrix.arch }}.dmg ]]
           [[ "$zip_file" == *-${{ matrix.arch }}-*.zip ]]
+          app_path="out/wh_notes-darwin-${{ matrix.arch }}/wh_notes.app"
+          codesign --verify --deep --strict --verbose=2 "$app_path"
+          codesign --display --verbose=4 "$app_path" 2>&1 | grep -q 'Signature=adhoc'
           if find out/make -type f -name 'RELEASES.json' -print -quit | grep -q .; then
             echo "macOS update manifests must not be created."
             exit 1

@@ -25,6 +25,13 @@ export type NoteSearchResult = NotePreview & {
   excerpt: string;
 };
 
+export type NoteVersionPreview = {
+  id: string;
+  title: string;
+  excerpt: string;
+  createdAt: string;
+};
+
 export type TrashedNotePreview = NotePreview & {
   trashedAt: string;
 };
@@ -66,6 +73,8 @@ export type NotesApi = {
   listTrash: () => Promise<TrashedNotePreview[]>;
   search: (query: string) => Promise<NoteSearchResult[]>;
   get: (id: string) => Promise<Note | null>;
+  listVersions: (noteId: string) => Promise<NoteVersionPreview[]>;
+  restoreVersion: (noteId: string, versionId: string) => Promise<Note | null>;
   create: () => Promise<Note>;
   save: (draft: NoteDraft) => Promise<Note | null>;
   moveToTrash: (id: string) => Promise<void>;

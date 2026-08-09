@@ -1,10 +1,12 @@
 import { randomUUID } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
-import type { Locale, Note, NoteDraft, NotePreview, NoteSearchResult, NoteSort, Tag, Theme, TrashedNotePreview } from "../shared/types";
+import type { Locale, Note, NoteDraft, NotePreview, NoteSearchResult, NoteSort, NoteVersionPreview, Tag, Theme, TrashedNotePreview } from "../shared/types";
 
 export const TRASH_RETENTION_DAYS = 30;
 const TRASH_RETENTION_MS = TRASH_RETENTION_DAYS * 24 * 60 * 60 * 1000;
 const SEARCH_RESULT_LIMIT = 50;
+const VERSION_SNAPSHOT_INTERVAL_MS = 5 * 60 * 1000;
+export const NOTE_VERSION_LIMIT = 50;
 export const DEFAULT_NOTE_SORT: NoteSort = "updated-desc";
 export const NOTE_SORTS = ["updated-desc", "updated-asc", "created-desc", "title-asc"] as const;
 
@@ -85,6 +87,12 @@ function excerptFor(content: string, terms: string[]) {
   return `${start > 0 ? "…" : ""}${text.slice(start, end)}${end < text.length ? "…" : ""}`;
 }
 
+function versionExcerpt(content: string) {
+  const text = searchableText(parseContent(content));
+  if (!text) return "";
+  return text.length > 160 ? `${text.slice(0, 160)}...` : text;
+}
+
 function noteFromRow(row: Record<string, unknown>): Note {
   return {
     id: String(row.id),
@@ -157,6 +165,17 @@ export class NotesRepository {
       ) STRICT;
 
       CREATE INDEX IF NOT EXISTS note_trash_trashed_at_idx ON note_trash(trashed_at);
+
+      CREATE TABLE IF NOT EXISTS note_versions (
+        id TEXT PRIMARY KEY,
+        note_id TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+        title TEXT NOT NULL,
+        content_json TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      ) STRICT;
+
+      CREATE INDEX IF NOT EXISTS note_versions_note_id_created_at_idx
+      ON note_versions(note_id, created_at DESC, id DESC);
 
       CREATE TABLE IF NOT EXISTS tags (
         id TEXT PRIMARY KEY,
@@ -367,6 +386,55 @@ export class NotesRepository {
     return row ? noteFromRow(row) : null;
   }
 
+  listVersions(noteId: string): NoteVersionPreview[] {
+    if (!isValidNoteId(noteId)) return [];
+    const rows = this.database.prepare(`
+      SELECT note_versions.id, note_versions.title, note_versions.content_json, note_versions.created_at
+      FROM note_versions
+      INNER JOIN notes ON notes.id = note_versions.note_id
+      LEFT JOIN note_trash ON note_trash.note_id = notes.id
+      WHERE note_versions.note_id = ? AND note_trash.note_id IS NULL
+      ORDER BY note_versions.created_at DESC, note_versions.id DESC
+      LIMIT ?
+    `).all(noteId, NOTE_VERSION_LIMIT) as Array<Record<string, unknown>>;
+
+    return rows.map((row) => ({
+      id: String(row.id),
+      title: String(row.title),
+      excerpt: versionExcerpt(String(row.content_json)),
+      createdAt: String(row.created_at),
+    }));
+  }
+
+  restoreVersion(noteId: string, versionId: string): Note | null {
+    if (!isValidNoteId(noteId) || !isValidNoteId(versionId)) return null;
+    const current = this.database.prepare(`
+      SELECT notes.* FROM notes
+      LEFT JOIN note_trash ON note_trash.note_id = notes.id
+      WHERE notes.id = ? AND note_trash.note_id IS NULL
+    `).get(noteId) as Record<string, unknown> | undefined;
+    const version = this.database.prepare(`
+      SELECT title, content_json FROM note_versions
+      WHERE id = ? AND note_id = ?
+    `).get(versionId, noteId) as Record<string, unknown> | undefined;
+    if (!current || !version) return null;
+
+    const timestamp = this.now().toISOString();
+    this.database.exec("BEGIN");
+    try {
+      this.captureVersion(current, timestamp, true);
+      this.database
+        .prepare("UPDATE notes SET title = ?, content_json = ?, updated_at = ? WHERE id = ?")
+        .run(String(version.title), String(version.content_json), timestamp, noteId);
+      this.database.exec("COMMIT");
+    } catch (error) {
+      this.database.exec("ROLLBACK");
+      throw error;
+    }
+
+    return this.get(noteId);
+  }
+
   listTags(): Tag[] {
     return (this.database.prepare("SELECT id, name FROM tags ORDER BY name COLLATE NOCASE ASC, id ASC").all() as Array<Record<string, unknown>>)
       .map((row) => ({ id: String(row.id), name: String(row.name) }));
@@ -454,11 +522,28 @@ export class NotesRepository {
     const contentJson = JSON.stringify(draft.content);
     if (contentJson.length > 2_000_000) throw new Error("Note is too large.");
 
-    const result = this.database
-      .prepare("UPDATE notes SET title = ?, content_json = ?, is_pinned = ?, updated_at = ? WHERE id = ?")
-      .run(draft.title.trim() || "Bez tytułu", contentJson, Number(draft.isPinned), this.now().toISOString(), draft.id);
+    const current = this.database
+      .prepare("SELECT id, title, content_json FROM notes WHERE id = ?")
+      .get(draft.id) as Record<string, unknown> | undefined;
+    if (!current) return null;
 
-    return result.changes > 0 ? this.get(draft.id) : null;
+    const title = draft.title.trim() || "Bez tytułu";
+    const hasContentChange = String(current.title) !== title || String(current.content_json) !== contentJson;
+    const timestamp = this.now().toISOString();
+
+    this.database.exec("BEGIN");
+    try {
+      if (hasContentChange) this.captureVersion(current, timestamp, false);
+      const result = this.database
+        .prepare("UPDATE notes SET title = ?, content_json = ?, is_pinned = ?, updated_at = ? WHERE id = ?")
+        .run(title, contentJson, Number(draft.isPinned), timestamp, draft.id);
+
+      this.database.exec("COMMIT");
+      return result.changes > 0 ? this.get(draft.id) : null;
+    } catch (error) {
+      this.database.exec("ROLLBACK");
+      throw error;
+    }
   }
 
   moveToTrash(id: string) {
@@ -505,5 +590,30 @@ export class NotesRepository {
 
   private removeUnusedTags() {
     this.database.prepare("DELETE FROM tags WHERE NOT EXISTS (SELECT 1 FROM note_tags WHERE note_tags.tag_id = tags.id)").run();
+  }
+
+  private captureVersion(note: Record<string, unknown>, timestamp: string, force: boolean) {
+    const noteId = String(note.id);
+    if (!force) {
+      const latest = this.database
+        .prepare("SELECT created_at FROM note_versions WHERE note_id = ? ORDER BY created_at DESC, id DESC LIMIT 1")
+        .get(noteId) as { created_at?: string } | undefined;
+      if (latest?.created_at && Date.parse(latest.created_at) + VERSION_SNAPSHOT_INTERVAL_MS > Date.parse(timestamp)) {
+        return;
+      }
+    }
+
+    this.database
+      .prepare("INSERT INTO note_versions (id, note_id, title, content_json, created_at) VALUES (?, ?, ?, ?, ?)")
+      .run(randomUUID(), noteId, String(note.title), String(note.content_json), timestamp);
+    this.database.prepare(`
+      DELETE FROM note_versions
+      WHERE id IN (
+        SELECT id FROM note_versions
+        WHERE note_id = ?
+        ORDER BY created_at DESC, id DESC
+        LIMIT -1 OFFSET ?
+      )
+    `).run(noteId, NOTE_VERSION_LIMIT);
   }
 }

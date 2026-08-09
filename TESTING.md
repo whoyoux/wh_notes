@@ -10,6 +10,7 @@
 | Encrypted archives  | AES-256-GCM round-trip, fresh encryption material, wrong password, tampering, and password policy | Vitest / Node crypto |
 | Editor data helpers | Local image URL parsing, image insertion followed by a paragraph, and readable byte labels        | Vitest               |
 | Checklists         | Tiptap task-list conversion, checkbox interaction, persisted checked state, and accessible labels | Vitest / happy-dom   |
+| Local version history | Snapshot cadence, duplicate suppression, restore safety, 50-version retention, and permanent-delete cleanup | Vitest / node:sqlite |
 | Application commands | Native menu / command-palette accelerator registry and the strict allow-list exposed to the renderer | Vitest               |
 | Notes repository   | SQLite schema initialization, CRUD, pinned ordering, local FTS5 search, export selection, validation, and preferences | Vitest / node:sqlite |
 | Note Trash         | Recovery, permanent deletion, active-note exclusion, and exact 30-day retention boundary            | Vitest / node:sqlite |

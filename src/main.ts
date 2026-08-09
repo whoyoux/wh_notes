@@ -146,7 +146,11 @@ function collectReferencedAssetIds(value: unknown, ids: Set<string>) {
 
 function collectActiveAssetIds() {
   const ids = new Set<string>();
-  const rows = database.prepare("SELECT content_json FROM notes").all() as Array<{ content_json: string }>;
+  const rows = database.prepare(`
+    SELECT content_json FROM notes
+    UNION ALL
+    SELECT content_json FROM note_versions
+  `).all() as Array<{ content_json: string }>;
   for (const row of rows) {
     try {
       collectReferencedAssetIds(JSON.parse(row.content_json), ids);
@@ -313,6 +317,17 @@ function installIpcHandlers() {
   ipcMain.handle("notes:get", (event, id: unknown) => {
     assertTrustedSender(event);
     return validId(id) ? getNote(id) : null;
+  });
+  ipcMain.handle("notes:list-versions", (event, noteId: unknown) => {
+    assertTrustedSender(event);
+    return validId(noteId) ? notesRepository.listVersions(noteId) : [];
+  });
+  ipcMain.handle("notes:restore-version", (event, noteId: unknown, versionId: unknown) => {
+    assertTrustedSender(event);
+    if (!validId(noteId) || !validId(versionId)) return null;
+    const restored = notesRepository.restoreVersion(noteId, versionId);
+    if (restored) synchronizeAssets();
+    return restored;
   });
   ipcMain.handle("notes:create", (event) => {
     assertTrustedSender(event);

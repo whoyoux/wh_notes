@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
-import { Archive, Download, FileText, MoreHorizontal, NotebookPen, Pin, Plus, Trash2, Upload } from "lucide-react";
+import { Archive, ArrowDownUp, Download, FileText, MoreHorizontal, NotebookPen, Pin, Plus, Trash2, Upload } from "lucide-react";
 import { useTheme } from "next-themes";
 import { NoteEditor } from "@/components/note-editor";
 import whNotesIcon from "@/assets/wh-notes-icon.png";
@@ -42,7 +42,7 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar";
 import type { AppCommand } from "../../shared/app-commands";
-import type { ArchivedNotePreview, Note, NotePreview, TrashedNotePreview } from "../../shared/types";
+import type { ArchivedNotePreview, Note, NotePreview, NoteSort, TrashedNotePreview } from "../../shared/types";
 
 type NotesSidebarProps = {
   notes: NotePreview[];
@@ -52,6 +52,7 @@ type NotesSidebarProps = {
   activeView: "notes" | "archive" | "trash";
   labels: ReturnType<typeof useI18n>["text"];
   onCreate: () => void;
+  onSetSort: (sort: NoteSort) => void;
   onShowNotes: () => void;
   onShowArchive: () => void;
   onShowTrash: () => void;
@@ -67,13 +68,26 @@ type NotesSidebarProps = {
   onImport: () => void;
 };
 
-function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, labels, onCreate, onShowNotes, onShowArchive, onShowTrash, onSelect, onRequestMoveToTrash, onSetPinned, onArchiveNote, onUnarchiveNote, onRestoreNote, onRequestPermanentDelete, onExportNote, onExportAll, onImport }: NotesSidebarProps) {
+function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, labels, onCreate, onSetSort, onShowNotes, onShowArchive, onShowTrash, onSelect, onRequestMoveToTrash, onSetPinned, onArchiveNote, onUnarchiveNote, onRestoreNote, onRequestPermanentDelete, onExportNote, onExportAll, onImport }: NotesSidebarProps) {
   return (
     <Sidebar>
       <SidebarHeader>
         <div className="flex h-7 items-center gap-2 px-2">
           <img src={whNotesIcon} alt="" className="size-5 rounded-[5px]" />
           <span className="flex-1 text-xs font-semibold tracking-tight">wh_notes</span>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button type="button" variant="ghost" size="icon-sm" aria-label={labels.sortNotes}>
+                <ArrowDownUp className="size-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => onSetSort("updated-desc")}>{labels.sortRecentlyEdited}</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => onSetSort("updated-asc")}>{labels.sortOldestEdited}</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => onSetSort("created-desc")}>{labels.sortRecentlyCreated}</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => onSetSort("title-asc")}>{labels.sortTitle}</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button type="button" variant="ghost" size="icon-sm" aria-label={labels.backup}>
@@ -384,6 +398,11 @@ export function App() {
     return previews;
   }, []);
 
+  const setNoteSort = useCallback(async (sort: NoteSort) => {
+    await window.notes.setSort(sort);
+    await Promise.all([refreshNotes(), refreshArchived()]);
+  }, [refreshArchived, refreshNotes]);
+
   useEffect(() => {
     void Promise.all([refreshNotes(), refreshArchived(), refreshTrash()]).then(([previews]) => {
       if (previews[0]) void selectNote(previews[0].id);
@@ -465,12 +484,7 @@ export function App() {
           if (!saved) return;
 
           pendingSavesRef.current.delete(noteId);
-          setNotes((current) =>
-            [
-              ...current.filter((item) => item.id !== saved.id),
-              { id: saved.id, title: saved.title, isPinned: saved.isPinned, createdAt: saved.createdAt, updatedAt: saved.updatedAt },
-            ].toSorted((a, b) => Number(b.isPinned) - Number(a.isPinned) || b.updatedAt.localeCompare(a.updatedAt)),
-          );
+          await Promise.all([refreshNotes(), refreshArchived()]);
         });
 
       saveChainsRef.current.set(noteId, next);
@@ -481,7 +495,7 @@ export function App() {
       });
       return next;
     },
-    [setNoteSaveStatus],
+    [refreshArchived, refreshNotes, setNoteSaveStatus],
   );
 
   const queueSave = useCallback((note: Note) => {
@@ -657,6 +671,7 @@ export function App() {
         activeView={activeView}
         labels={text}
         onCreate={() => void createNote()}
+        onSetSort={(sort) => void setNoteSort(sort)}
         onShowNotes={() => void showNotes()}
         onShowArchive={() => void showArchive()}
         onShowTrash={() => void showTrash()}

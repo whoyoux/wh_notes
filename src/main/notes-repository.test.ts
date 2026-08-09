@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { EMPTY_DOCUMENT, NotesRepository } from "./notes-repository";
+import { DEFAULT_NOTE_SORT, EMPTY_DOCUMENT, NotesRepository } from "./notes-repository";
 
 const databases: DatabaseSync[] = [];
 
@@ -138,6 +138,32 @@ describe("NotesRepository", () => {
     repository.moveToTrash(first.id);
     expect(repository.setPinned(first.id, false)).toBeNull();
     expect(repository.restoreFromTrash(first.id)).toMatchObject({ isPinned: true });
+  });
+
+  it("persists only supported local sort choices and keeps pins first", () => {
+    const { repository, advance } = createRepository();
+    const first = repository.create();
+    advance(1);
+    const second = repository.create();
+    advance(1);
+    const third = repository.create();
+    repository.save({ ...first, title: "Zulu" });
+    repository.save({ ...second, title: "Alpha" });
+    repository.save({ ...third, title: "Echo" });
+
+    expect(repository.getSort()).toBe(DEFAULT_NOTE_SORT);
+    repository.setSort("updated-asc");
+    expect(repository.list().map((note) => note.id)).toEqual([first.id, second.id, third.id]);
+
+    repository.setSort("created-desc");
+    expect(repository.list().map((note) => note.id)).toEqual([third.id, second.id, first.id]);
+
+    repository.setSort("title-asc");
+    expect(repository.list().map((note) => note.id)).toEqual([second.id, third.id, first.id]);
+
+    repository.setPinned(first.id, true);
+    expect(repository.list().map((note) => note.id)).toEqual([first.id, second.id, third.id]);
+    expect(() => repository.setSort("not-a-sort" as never)).toThrow("Invalid note sort.");
   });
 
   it("does not write malformed drafts and moves notes to a recoverable trash", () => {

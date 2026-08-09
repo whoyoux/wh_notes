@@ -10,7 +10,7 @@
 | Encrypted archives  | AES-256-GCM round-trip, fresh encryption material, wrong password, tampering, and password policy | Vitest / Node crypto |
 | Editor data helpers | Local image URL parsing, image insertion followed by a paragraph, and readable byte labels        | Vitest               |
 | Application commands | Native menu accelerator registry and the strict allow-list exposed to the renderer                  | Vitest               |
-| Notes repository   | SQLite schema initialization, CRUD, pinned ordering, export selection, validation, and preferences | Vitest / node:sqlite |
+| Notes repository   | SQLite schema initialization, CRUD, pinned ordering, local FTS5 search, export selection, validation, and preferences | Vitest / node:sqlite |
 | Note Trash         | Recovery, permanent deletion, active-note exclusion, and exact 30-day retention boundary            | Vitest / node:sqlite |
 | Pinned notes       | Durable pin state, ordering, and protection against changing a note while it is in Trash                 | Vitest / node:sqlite |
 | Note sorting       | Validated local preference, all supported sort modes, stable ties, and pinned-note priority               | Vitest / node:sqlite |

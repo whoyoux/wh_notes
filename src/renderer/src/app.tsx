@@ -5,6 +5,7 @@ import { NoteEditor } from "@/components/note-editor";
 import whNotesIcon from "@/assets/wh-notes-icon.png";
 import { ThemeMenu } from "@/components/theme-menu";
 import { LanguageMenu } from "@/components/language-menu";
+import { SearchNotesDialog } from "@/components/search-notes-dialog";
 import { useI18n } from "@/components/locale-provider";
 import { resolveSaveStatus, type SaveStatus } from "@/lib/save-status";
 import {
@@ -49,7 +50,7 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar";
 import type { AppCommand } from "../../shared/app-commands";
-import type { Note, NotePreview, NoteSort, Tag, TrashedNotePreview } from "../../shared/types";
+import type { Note, NotePreview, NoteSearchResult, NoteSort, Tag, TrashedNotePreview } from "../../shared/types";
 
 type NotesSidebarProps = {
   notes: NotePreview[];
@@ -439,6 +440,7 @@ export function App() {
   const [activeTags, setActiveTags] = useState<Tag[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [tagEditorOpen, setTagEditorOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [activeView, setActiveView] = useState<"notes" | "trash">("notes");
   const [activeNote, setActiveNote] = useState<Note | null>(null);
   const [loading, setLoading] = useState(true);
@@ -711,9 +713,19 @@ export function App() {
     setArchiveAction({ mode: "export", noteIds: [id] });
   }, [flushActiveNote]);
 
+  const selectSearchResult = useCallback((result: NoteSearchResult) => {
+    setSearchOpen(false);
+    setActiveView("notes");
+    void selectNote(result.id);
+  }, [selectNote]);
+
   const runAppCommand = useCallback((command: AppCommand) => {
     if (command === "new-note") {
       void createNote();
+      return;
+    }
+    if (command === "search-notes") {
+      setSearchOpen(true);
       return;
     }
     if (command === "save-note") {
@@ -778,6 +790,7 @@ export function App() {
         )}
       </SidebarInset>
 
+      <SearchNotesDialog open={searchOpen} onOpenChange={setSearchOpen} onSelect={selectSearchResult} />
       <AlertDialog open={Boolean(noteToTrash)} onOpenChange={(open) => !open && setNoteToTrash(null)}>
         <AlertDialogContent size="sm">
           <AlertDialogHeader>

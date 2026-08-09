@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { isAppCommand } from "./shared/app-commands";
-import type { ArchiveExportOptions, ImportImagePayload, Locale, NoteDraft, NotesApi, Theme } from "./shared/types";
+import type { ArchiveExportOptions, ImportImagePayload, Locale, NoteDraft, NotesApi, NoteSort, Theme } from "./shared/types";
 
 const notesApi: NotesApi = {
   list: () => ipcRenderer.invoke("notes:list"),
@@ -15,6 +15,8 @@ const notesApi: NotesApi = {
   unarchive: (id) => ipcRenderer.invoke("notes:unarchive", id),
   restoreFromTrash: (id) => ipcRenderer.invoke("notes:restore-from-trash", id),
   permanentlyDelete: (id) => ipcRenderer.invoke("notes:permanently-delete", id),
+  getSort: () => ipcRenderer.invoke("preferences:get-note-sort"),
+  setSort: (sort: NoteSort) => ipcRenderer.invoke("preferences:set-note-sort", sort),
   getTheme: () => ipcRenderer.invoke("preferences:get-theme"),
   setTheme: (theme: Theme) => ipcRenderer.invoke("preferences:set-theme", theme),
   getLocale: () => ipcRenderer.invoke("preferences:get-locale"),

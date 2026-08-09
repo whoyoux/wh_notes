@@ -46,6 +46,7 @@ The interface is intentionally small and native-feeling: a focused notes sidebar
 - **Trash with recovery** &mdash; deleted notes stay on this device in Trash for 30 days, where they can be restored or permanently deleted.
 - **Archive without deleting** &mdash; move finished notes out of the active list, then restore them whenever they become relevant again.
 - **Pinned notes** &mdash; keep important notes at the top of the active list with a small, local pin.
+- **Local sorting** &mdash; order active and archived notes by edit time, creation time, or title; the choice stays on your device.
 - **Keyboard shortcuts** &mdash; familiar shortcuts for creating, saving, exporting, and formatting notes; the complete reference is in [Keyboard shortcuts](docs/keyboard-shortcuts.md).
 - **Local image handling** &mdash; paste or drag images into a note; wh_notes copies them into its own storage so the original file can be moved or deleted safely.
 - **Portable encrypted archives** &mdash; export one note or your complete library into an encrypted archive, then import it on another computer.

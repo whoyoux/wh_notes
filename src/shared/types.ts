@@ -2,6 +2,7 @@ import type { AppCommand } from "./app-commands";
 
 export type Theme = "light" | "dark" | "system";
 export type Locale = "en" | "pl";
+export type NoteSort = "updated-desc" | "updated-asc" | "created-desc" | "title-asc";
 
 export type NotePreview = {
   id: string;
@@ -68,6 +69,8 @@ export type NotesApi = {
   unarchive: (id: string) => Promise<Note | null>;
   restoreFromTrash: (id: string) => Promise<Note | null>;
   permanentlyDelete: (id: string) => Promise<void>;
+  getSort: () => Promise<NoteSort>;
+  setSort: (sort: NoteSort) => Promise<void>;
   getTheme: () => Promise<Theme>;
   setTheme: (theme: Theme) => Promise<void>;
   getLocale: () => Promise<Locale>;

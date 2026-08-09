@@ -9,7 +9,7 @@ import type { ArchiveExportOptions, ArchiveImportResult, ImportImagePayload, Loc
 import { APP_COMMANDS, type AppCommand } from "./shared/app-commands";
 import { decryptArchive, encryptArchive, type ArchiveDocument } from "./main/archive-crypto";
 import { IMAGE_FORMATS, MAX_IMAGE_BYTES, validateImageBytes, type ImageMimeType } from "./main/media-validation";
-import { isValidNoteId, NotesRepository } from "./main/notes-repository";
+import { isNoteSort, isValidNoteId, NotesRepository } from "./main/notes-repository";
 import { backgroundColorForTheme } from "./main/window-theme";
 
 let mainWindow: BrowserWindow | null = null;
@@ -461,6 +461,15 @@ function installIpcHandlers() {
   ipcMain.handle("preferences:get-locale", (event) => {
     assertTrustedSender(event);
     return getLocale();
+  });
+  ipcMain.handle("preferences:get-note-sort", (event) => {
+    assertTrustedSender(event);
+    return notesRepository.getSort();
+  });
+  ipcMain.handle("preferences:set-note-sort", (event, sort: unknown) => {
+    assertTrustedSender(event);
+    if (!isNoteSort(sort)) throw new Error("Invalid note sort.");
+    notesRepository.setSort(sort);
   });
   ipcMain.handle("preferences:set-locale", (event, locale: unknown) => {
     assertTrustedSender(event);

@@ -1,9 +1,28 @@
 import { randomUUID } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
-import type { ArchivedNotePreview, Locale, Note, NoteDraft, NotePreview, Theme, TrashedNotePreview } from "../shared/types";
+import type { ArchivedNotePreview, Locale, Note, NoteDraft, NotePreview, NoteSort, Theme, TrashedNotePreview } from "../shared/types";
 
 export const TRASH_RETENTION_DAYS = 30;
 const TRASH_RETENTION_MS = TRASH_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+export const DEFAULT_NOTE_SORT: NoteSort = "updated-desc";
+export const NOTE_SORTS = ["updated-desc", "updated-asc", "created-desc", "title-asc"] as const;
+
+export function isNoteSort(value: unknown): value is NoteSort {
+  return typeof value === "string" && (NOTE_SORTS as readonly string[]).includes(value);
+}
+
+function orderBy(sort: NoteSort) {
+  switch (sort) {
+    case "updated-asc":
+      return "notes.is_pinned DESC, notes.updated_at ASC, notes.id ASC";
+    case "created-desc":
+      return "notes.is_pinned DESC, notes.created_at DESC, notes.id ASC";
+    case "title-asc":
+      return "notes.is_pinned DESC, notes.title COLLATE NOCASE ASC, notes.id ASC";
+    default:
+      return "notes.is_pinned DESC, notes.updated_at DESC, notes.id ASC";
+  }
+}
 
 export const EMPTY_DOCUMENT: Record<string, unknown> = {
   type: "doc",
@@ -101,6 +120,20 @@ export class NotesRepository {
       .run(locale);
   }
 
+  getSort(): NoteSort {
+    const row = this.database
+      .prepare("SELECT value FROM preferences WHERE key = 'notes.sort'")
+      .get() as { value?: string } | undefined;
+    return isNoteSort(row?.value) ? row.value : DEFAULT_NOTE_SORT;
+  }
+
+  setSort(sort: NoteSort) {
+    if (!isNoteSort(sort)) throw new Error("Invalid note sort.");
+    this.database
+      .prepare("INSERT INTO preferences (key, value) VALUES ('notes.sort', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
+      .run(sort);
+  }
+
   getTheme(): Theme {
     const row = this.database
       .prepare("SELECT value FROM preferences WHERE key = 'theme'")
@@ -141,7 +174,7 @@ export class NotesRepository {
         LEFT JOIN note_trash ON note_trash.note_id = notes.id
         LEFT JOIN note_archive ON note_archive.note_id = notes.id
         WHERE note_trash.note_id IS NULL AND note_archive.note_id IS NULL
-        ORDER BY notes.is_pinned DESC, notes.updated_at DESC
+        ORDER BY ${orderBy(this.getSort())}
       `)
       .all() as Record<string, unknown>[];
 
@@ -162,7 +195,7 @@ export class NotesRepository {
         INNER JOIN notes ON notes.id = note_archive.note_id
         LEFT JOIN note_trash ON note_trash.note_id = notes.id
         WHERE note_trash.note_id IS NULL
-        ORDER BY note_archive.archived_at DESC
+        ORDER BY ${orderBy(this.getSort())}
       `)
       .all() as Array<Record<string, unknown>>;
 

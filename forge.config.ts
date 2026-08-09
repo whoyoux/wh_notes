@@ -12,6 +12,7 @@ const iconPath = path.join(__dirname, "resources", "wh-notes.ico");
 const macIconPath = path.join(__dirname, "resources", "wh-notes.icns");
 const windowsIconPath = path.join(__dirname, "resources", "wh-notes");
 const linuxIconPath = path.join(__dirname, "resources", "wh-notes.png");
+const electronCacheRoot = process.env.WH_NOTES_ELECTRON_CACHE;
 const packagerIconPath =
   process.platform === "darwin" ? macIconPath : windowsIconPath;
 const nightlyVersion = process.env.WH_NOTES_NIGHTLY_VERSION;
@@ -45,6 +46,9 @@ function configurePerUserWixInstaller(creator: MSICreator) {
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
+    ...(electronCacheRoot
+      ? { download: { cacheRoot: electronCacheRoot } }
+      : {}),
     icon: packagerIconPath,
     extraResource: [iconPath],
     win32metadata: {

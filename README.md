@@ -47,6 +47,7 @@ The interface is intentionally small and native-feeling: a focused notes sidebar
 - **Archive without deleting** &mdash; move finished notes out of the active list, then restore them whenever they become relevant again.
 - **Pinned notes** &mdash; keep important notes at the top of the active list with a small, local pin.
 - **Local sorting** &mdash; order active and archived notes by edit time, creation time, or title; the choice stays on your device.
+- **Local tags and filters** &mdash; group notes with private tags and filter active or archived lists without adding folders or sending metadata anywhere.
 - **Keyboard shortcuts** &mdash; familiar shortcuts for creating, saving, exporting, and formatting notes; the complete reference is in [Keyboard shortcuts](docs/keyboard-shortcuts.md).
 - **Local image handling** &mdash; paste or drag images into a note; wh_notes copies them into its own storage so the original file can be moved or deleted safely.
 - **Portable encrypted archives** &mdash; export one note or your complete library into an encrypted archive, then import it on another computer.

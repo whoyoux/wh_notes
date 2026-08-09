@@ -24,6 +24,7 @@ import {
   Redo2,
   Strikethrough,
   Trash2,
+  Tags,
   Undo2,
   type LucideIcon,
 } from "lucide-react";
@@ -40,7 +41,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import type { LocalImage, Note } from "../../../shared/types";
+import type { LocalImage, Note, Tag } from "../../../shared/types";
 
 const lowlight = createLowlight(common);
 
@@ -48,6 +49,8 @@ type NoteEditorProps = {
   note: Note;
   saveStatus: SaveStatus;
   readOnly?: boolean;
+  tags: Tag[];
+  onManageTags: () => void;
   onTitleChange: (title: string) => void;
   onContentChange: (content: Record<string, unknown>) => void;
 };
@@ -219,7 +222,7 @@ function insertImage(editor: Editor, image: LocalImage, position?: number, alt =
   else chain.insertContent(contentWithParagraph).run();
 }
 
-export function NoteEditor({ note, saveStatus, readOnly = false, onTitleChange, onContentChange }: NoteEditorProps) {
+export function NoteEditor({ note, saveStatus, readOnly = false, tags, onManageTags, onTitleChange, onContentChange }: NoteEditorProps) {
   const { text } = useI18n();
   const onContentChangeRef = useRef(onContentChange);
   const importImageFilesRef = useRef<(currentEditor: Editor, files: File[], position?: number) => Promise<void>>(async () => undefined);
@@ -352,6 +355,7 @@ export function NoteEditor({ note, saveStatus, readOnly = false, onTitleChange, 
           placeholder={text.untitled}
         />
         <div className="editor-statuses">
+          {!readOnly && <Button type="button" variant="outline" size="xs" onClick={onManageTags}><Tags className="size-3" />{tags.length ? `${tags.length}` : text.tags}</Button>}
           <span className="editor-status" data-state={saveStatus} aria-live="polite">
             <span className="status-dot" />
             {saveStatusLabel}

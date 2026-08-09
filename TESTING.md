@@ -15,6 +15,7 @@
 | Note Archive       | Separate active/archive/trash views, recovery state, and export inclusion                               | Vitest / node:sqlite |
 | Pinned notes       | Durable pin state, ordering, and protection against changing a note while it is in Trash                 | Vitest / node:sqlite |
 | Note sorting       | Validated local preference, all supported sort modes, stable ties, and pinned-note priority               | Vitest / node:sqlite |
+| Tags and filters   | Tag normalization, uniqueness, AND filtering, trash protection, archive filtering, and orphan cleanup     | Vitest / node:sqlite |
 
 Every pull request runs typechecking, the Vitest suite, and a runtime-dependency audit. Every change merged into `main` runs those checks again, builds native Windows and Linux installers, publishes a prerelease, writes SHA-256 checksums, and produces GitHub artifact attestations.
 

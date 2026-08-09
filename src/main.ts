@@ -294,13 +294,13 @@ function saveNote(draft: NoteDraft): Note | null {
 }
 
 function installIpcHandlers() {
-  ipcMain.handle("notes:list", (event) => {
+  ipcMain.handle("notes:list", (event, tagIds: unknown) => {
     assertTrustedSender(event);
-    return listNotes();
+    return tagIds === undefined ? listNotes() : notesRepository.list(Array.isArray(tagIds) ? tagIds as string[] : []);
   });
-  ipcMain.handle("notes:list-archived", (event) => {
+  ipcMain.handle("notes:list-archived", (event, tagIds: unknown) => {
     assertTrustedSender(event);
-    return notesRepository.listArchived();
+    return notesRepository.listArchived(tagIds === undefined ? [] : Array.isArray(tagIds) ? tagIds as string[] : []);
   });
   ipcMain.handle("notes:list-trash", (event) => {
     assertTrustedSender(event);
@@ -350,6 +350,21 @@ function installIpcHandlers() {
       notesRepository.permanentlyDelete(id);
       synchronizeAssets();
     }
+  });
+  ipcMain.handle("tags:list", (event) => {
+    assertTrustedSender(event);
+    return notesRepository.listTags();
+  });
+  ipcMain.handle("tags:get-for-note", (event, noteId: unknown) => {
+    assertTrustedSender(event);
+    return validId(noteId) ? notesRepository.getTags(noteId) : [];
+  });
+  ipcMain.handle("tags:set-for-note", (event, noteId: unknown, names: unknown) => {
+    assertTrustedSender(event);
+    if (!validId(noteId) || !Array.isArray(names) || !names.every((name) => typeof name === "string")) {
+      throw new Error("Invalid tags.");
+    }
+    return notesRepository.setTags(noteId, names);
   });
   ipcMain.handle("media:import-image", (event, payload: unknown) => {
     assertTrustedSender(event);

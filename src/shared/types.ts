@@ -4,6 +4,11 @@ export type Theme = "light" | "dark" | "system";
 export type Locale = "en" | "pl";
 export type NoteSort = "updated-desc" | "updated-asc" | "created-desc" | "title-asc";
 
+export type Tag = {
+  id: string;
+  name: string;
+};
+
 export type NotePreview = {
   id: string;
   title: string;
@@ -57,8 +62,8 @@ export type ArchiveImportResult = {
 };
 
 export type NotesApi = {
-  list: () => Promise<NotePreview[]>;
-  listArchived: () => Promise<ArchivedNotePreview[]>;
+  list: (tagIds?: string[]) => Promise<NotePreview[]>;
+  listArchived: (tagIds?: string[]) => Promise<ArchivedNotePreview[]>;
   listTrash: () => Promise<TrashedNotePreview[]>;
   get: (id: string) => Promise<Note | null>;
   create: () => Promise<Note>;
@@ -71,6 +76,9 @@ export type NotesApi = {
   permanentlyDelete: (id: string) => Promise<void>;
   getSort: () => Promise<NoteSort>;
   setSort: (sort: NoteSort) => Promise<void>;
+  listTags: () => Promise<Tag[]>;
+  getTags: (noteId: string) => Promise<Tag[]>;
+  setTags: (noteId: string, names: string[]) => Promise<Tag[]>;
   getTheme: () => Promise<Theme>;
   setTheme: (theme: Theme) => Promise<void>;
   getLocale: () => Promise<Locale>;

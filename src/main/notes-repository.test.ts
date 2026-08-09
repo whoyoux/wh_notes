@@ -166,6 +166,37 @@ describe("NotesRepository", () => {
     expect(() => repository.setSort("not-a-sort" as never)).toThrow("Invalid note sort.");
   });
 
+  it("normalizes local tags, filters with AND semantics, and cleans unused tags", () => {
+    const { repository, advance } = createRepository();
+    const first = repository.create();
+    advance(1);
+    const second = repository.create();
+
+    const firstTags = repository.setTags(first.id, ["Work", " work ", "Polish notes"]);
+    const secondTags = repository.setTags(second.id, ["work", "Personal"]);
+    const work = firstTags.find((tag) => tag.name === "Work");
+    const polish = firstTags.find((tag) => tag.name === "Polish notes");
+    const personal = secondTags.find((tag) => tag.name === "Personal");
+
+    expect(repository.listTags().map((tag) => tag.name)).toEqual(["Personal", "Polish notes", "Work"]);
+    expect(repository.list([work!.id]).map((note) => note.id)).toEqual([second.id, first.id]);
+    expect(repository.list([work!.id, polish!.id]).map((note) => note.id)).toEqual([first.id]);
+
+    repository.moveToTrash(first.id);
+    expect(() => repository.setTags(first.id, ["Private"])).toThrow("Cannot tag a trashed note.");
+    expect(repository.list([work!.id]).map((note) => note.id)).toEqual([second.id]);
+
+    repository.archive(second.id);
+    expect(repository.listArchived([work!.id]).map((note) => note.id)).toEqual([second.id]);
+
+    repository.setTags(second.id, []);
+    expect(repository.listTags().map((tag) => tag.name)).toEqual(["Polish notes", "Work"]);
+    repository.permanentlyDelete(first.id);
+    repository.setTags(second.id, []);
+    expect(repository.listTags()).toEqual([]);
+    expect(personal).toBeDefined();
+  });
+
   it("does not write malformed drafts and moves notes to a recoverable trash", () => {
     const { repository } = createRepository();
     const note = repository.create();

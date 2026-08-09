@@ -26,6 +26,10 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -80,42 +84,39 @@ function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, 
         <div className="flex h-7 items-center gap-2 px-2">
           <img src={whNotesIcon} alt="" className="size-5 rounded-[5px]" />
           <span className="flex-1 text-xs font-semibold tracking-tight">wh_notes</span>
-        </div>
-        <div className="flex h-6 items-center gap-0.5 px-1">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button type="button" variant="ghost" size="icon-xs" aria-label={labels.sortNotes}>
-                <ArrowDownUp className="size-3.5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={() => onSetSort("updated-desc")}>{labels.sortRecentlyEdited}</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => onSetSort("updated-asc")}>{labels.sortOldestEdited}</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => onSetSort("created-desc")}>{labels.sortRecentlyCreated}</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => onSetSort("title-asc")}>{labels.sortTitle}</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button type="button" variant="ghost" size="icon-xs" aria-label={labels.filterTags}>
-                <TagIcon className="size-3.5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {tags.length === 0 ? <DropdownMenuItem disabled>{labels.noTags}</DropdownMenuItem> : tags.map((tag) => (
-                <DropdownMenuCheckboxItem key={tag.id} checked={selectedTagIds.includes(tag.id)} onCheckedChange={() => onToggleTagFilter(tag.id)}>
-                  {tag.name}
-                </DropdownMenuCheckboxItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button type="button" variant="ghost" size="icon-xs" aria-label={labels.backup}>
+              <Button type="button" variant="ghost" size="icon-xs" aria-label={labels.moreOptions}>
                 <MoreHorizontal className="size-3.5" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <ArrowDownUp />
+                  {labels.sortNotes}
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem onSelect={() => onSetSort("updated-desc")}>{labels.sortRecentlyEdited}</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => onSetSort("updated-asc")}>{labels.sortOldestEdited}</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => onSetSort("created-desc")}>{labels.sortRecentlyCreated}</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => onSetSort("title-asc")}>{labels.sortTitle}</DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <TagIcon />
+                  {labels.filterTags}
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  {tags.length === 0 ? <DropdownMenuItem disabled>{labels.noTags}</DropdownMenuItem> : tags.map((tag) => (
+                    <DropdownMenuCheckboxItem key={tag.id} checked={selectedTagIds.includes(tag.id)} onCheckedChange={() => onToggleTagFilter(tag.id)}>
+                      {tag.name}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={onExportAll} disabled={notes.length === 0}>
                 <Download />
                 {labels.exportAllNotes}
@@ -353,8 +354,8 @@ function ArchivePasswordDialog({ action, onClose, onImported }: {
             {error && <p className="text-xs text-destructive" role="alert">{error}</p>}
           </div>
           <DialogFooter className="mt-4">
-            <Button type="button" size="sm" className="text-xs" variant="outline" onClick={onClose} disabled={isWorking}>{text.cancel}</Button>
-            <Button type="submit" size="sm" className="text-xs" disabled={isWorking}>{isExport ? text.export : text.import}</Button>
+            <Button type="button" size="sm" className="text-[10px]" variant="outline" onClick={onClose} disabled={isWorking}>{text.cancel}</Button>
+            <Button type="submit" size="sm" className="text-[10px]" disabled={isWorking}>{isExport ? text.export : text.import}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -418,7 +419,7 @@ function TagEditorDialog({ note, tags, open, onOpenChange, onSave }: {
         </DialogHeader>
         <form className="flex items-center gap-2" onSubmit={(event) => { event.preventDefault(); addTag(); }}>
           <Input className="flex-1" value={value} onChange={(event) => setValue(event.target.value)} placeholder={text.addTag} maxLength={50} />
-          <Button type="submit" variant="outline" size="sm" className="shrink-0 text-xs">{text.addTag}</Button>
+          <Button type="submit" variant="outline" size="sm" className="shrink-0 text-[10px]">{text.addTag}</Button>
         </form>
         <div className="space-y-2 border-t pt-3">
           <p className="text-[11px] font-medium text-muted-foreground">{text.tags}</p>
@@ -443,8 +444,8 @@ function TagEditorDialog({ note, tags, open, onOpenChange, onSave }: {
           ) : <p className="text-xs text-muted-foreground">{text.noTags}</p>}
         </div>
         <DialogFooter className="border-t pt-3">
-          <Button type="button" size="sm" className="text-xs" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>{text.cancel}</Button>
-          <Button type="button" size="sm" className="text-xs" onClick={() => void save()} disabled={saving}>{text.saveTags}</Button>
+          <Button type="button" size="sm" className="text-[10px]" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>{text.cancel}</Button>
+          <Button type="button" size="sm" className="text-[10px]" onClick={() => void save()} disabled={saving}>{text.saveTags}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

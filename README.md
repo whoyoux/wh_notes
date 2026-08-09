@@ -53,7 +53,7 @@ The interface is intentionally small and native-feeling: a focused notes sidebar
 - **Portable encrypted archives** &mdash; export one note or your complete library into an encrypted archive, then import it on another computer.
 - **Light and dark themes** &mdash; powered by shadcn/ui, with the choice stored locally.
 - **English and Polish** &mdash; switch the interface language at any time.
-- **Compact desktop interface** &mdash; consistent 12 px controls, menus, and sidebar labels keep the workspace quiet and readable.
+- **Compact desktop interface** &mdash; small, consistent controls, menus, and sidebar labels keep the workspace quiet and readable.
 - **No lock-in** &mdash; your data is local, and backup/export is built in from the start.
 
 ## Install

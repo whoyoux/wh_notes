@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -29,9 +30,11 @@ export function ThemeMenu() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="min-w-0 w-auto">
-        <DropdownMenuItem onSelect={() => changeTheme("light")}><Sun />{text.light}</DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => changeTheme("dark")}><Moon />{text.dark}</DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => changeTheme("system")}><Monitor />{text.system}</DropdownMenuItem>
+        <DropdownMenuGroup>
+          <DropdownMenuItem onSelect={() => changeTheme("light")}><Sun />{text.light}</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => changeTheme("dark")}><Moon />{text.dark}</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => changeTheme("system")}><Monitor />{text.system}</DropdownMenuItem>
+        </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );

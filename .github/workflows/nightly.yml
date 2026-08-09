@@ -81,8 +81,17 @@ jobs:
         if: matrix.wix
         shell: pwsh
         run: |
-          choco install wixtoolset --version=3.14.0 --yes --no-progress
-          $wixBin = "C:\Program Files (x86)\WiX Toolset v3.14\bin"
+          $wixBin = Get-ChildItem -Path "C:\Program Files (x86)" -Directory -Filter "WiX Toolset v3*" -ErrorAction SilentlyContinue |
+            ForEach-Object { Join-Path $_.FullName "bin" } |
+            Where-Object { (Test-Path "$_\candle.exe") -and (Test-Path "$_\light.exe") } |
+            Select-Object -First 1
+          if (-not $wixBin) {
+            choco install wixtoolset --yes --no-progress
+            $wixBin = Get-ChildItem -Path "C:\Program Files (x86)" -Directory -Filter "WiX Toolset v3*" -ErrorAction SilentlyContinue |
+              ForEach-Object { Join-Path $_.FullName "bin" } |
+              Where-Object { (Test-Path "$_\candle.exe") -and (Test-Path "$_\light.exe") } |
+              Select-Object -First 1
+          }
           if (-not (Test-Path "$wixBin\candle.exe") -or -not (Test-Path "$wixBin\light.exe")) {
             throw "WiX Toolset installation is incomplete."
           }

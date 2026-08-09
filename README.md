@@ -40,7 +40,7 @@ The interface is intentionally small and native-feeling: a focused notes sidebar
 ## Features
 
 - **Offline by design** &mdash; notes, preferences, images, and encrypted archives stay on your device.
-- **Rich-text editor** &mdash; headings, lists, quotes, inline code, code blocks with syntax highlighting, and keyboard-friendly editing.
+- **Rich-text editor** &mdash; headings, lists, checklists, quotes, inline code, code blocks with syntax highlighting, and keyboard-friendly editing.
 - **Reliable local saving** &mdash; the editor clearly shows when a change is saving, saved on this device, or could not be written.
 - **Tested local storage** &mdash; the SQLite repository is covered by automated tests for note creation, saving, ordering, deletion, and local preferences.
 - **Command palette and local search** &mdash; press <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>K</kbd> to search note titles and text through a local SQLite FTS5 index or run a key action; Trash is never included.

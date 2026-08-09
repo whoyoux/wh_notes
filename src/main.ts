@@ -485,8 +485,8 @@ function installIpcHandlers() {
     const date = new Date().toISOString().slice(0, 10);
     const dialogOptions: SaveDialogOptions = {
       title: "Export encrypted notes",
-      defaultPath: `local-notes-${date}.lnotes`,
-      filters: [{ name: "wh_notes archive", extensions: ["lnotes"] }],
+      defaultPath: `local-notes-${date}.wnotes`,
+      filters: [{ name: "wh_notes archive", extensions: ["wnotes"] }],
     };
     const result = mainWindow
       ? await dialog.showSaveDialog(mainWindow, dialogOptions)
@@ -502,7 +502,7 @@ function installIpcHandlers() {
     const dialogOptions: OpenDialogOptions = {
       title: "Import encrypted notes",
       properties: ["openFile"],
-      filters: [{ name: "wh_notes archive", extensions: ["lnotes"] }],
+      filters: [{ name: "wh_notes archive", extensions: ["wnotes"] }],
     };
     const result = mainWindow
       ? await dialog.showOpenDialog(mainWindow, dialogOptions)

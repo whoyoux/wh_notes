@@ -4,15 +4,12 @@ import type { ArchiveExportOptions, ImportImagePayload, Locale, NoteDraft, Notes
 
 const notesApi: NotesApi = {
   list: (tagIds) => ipcRenderer.invoke("notes:list", tagIds),
-  listArchived: (tagIds) => ipcRenderer.invoke("notes:list-archived", tagIds),
   listTrash: () => ipcRenderer.invoke("notes:list-trash"),
   get: (id) => ipcRenderer.invoke("notes:get", id),
   create: () => ipcRenderer.invoke("notes:create"),
   save: (draft: NoteDraft) => ipcRenderer.invoke("notes:save", draft),
   moveToTrash: (id) => ipcRenderer.invoke("notes:move-to-trash", id),
   setPinned: (id, isPinned) => ipcRenderer.invoke("notes:set-pinned", id, isPinned),
-  archive: (id) => ipcRenderer.invoke("notes:archive", id),
-  unarchive: (id) => ipcRenderer.invoke("notes:unarchive", id),
   restoreFromTrash: (id) => ipcRenderer.invoke("notes:restore-from-trash", id),
   permanentlyDelete: (id) => ipcRenderer.invoke("notes:permanently-delete", id),
   getSort: () => ipcRenderer.invoke("preferences:get-note-sort"),

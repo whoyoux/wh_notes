@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
-import type { ArchivedNotePreview, Locale, Note, NoteDraft, NotePreview, NoteSort, Tag, Theme, TrashedNotePreview } from "../shared/types";
+import type { Locale, Note, NoteDraft, NotePreview, NoteSort, Tag, Theme, TrashedNotePreview } from "../shared/types";
 
 export const TRASH_RETENTION_DAYS = 30;
 const TRASH_RETENTION_MS = TRASH_RETENTION_DAYS * 24 * 60 * 60 * 1000;
@@ -118,13 +118,6 @@ export class NotesRepository {
 
       CREATE INDEX IF NOT EXISTS note_trash_trashed_at_idx ON note_trash(trashed_at);
 
-      CREATE TABLE IF NOT EXISTS note_archive (
-        note_id TEXT PRIMARY KEY REFERENCES notes(id) ON DELETE CASCADE,
-        archived_at TEXT NOT NULL
-      ) STRICT;
-
-      CREATE INDEX IF NOT EXISTS note_archive_archived_at_idx ON note_archive(archived_at);
-
       CREATE TABLE IF NOT EXISTS tags (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -208,8 +201,7 @@ export class NotesRepository {
         SELECT notes.id, notes.title, notes.is_pinned, notes.created_at, notes.updated_at
         FROM notes
         LEFT JOIN note_trash ON note_trash.note_id = notes.id
-        LEFT JOIN note_archive ON note_archive.note_id = notes.id
-        WHERE note_trash.note_id IS NULL AND note_archive.note_id IS NULL ${tagFilter.sql}
+        WHERE note_trash.note_id IS NULL ${tagFilter.sql}
         ORDER BY ${orderBy(this.getSort())}
       `)
       .all(...tagFilter.params) as Record<string, unknown>[];
@@ -220,29 +212,6 @@ export class NotesRepository {
       isPinned: Boolean(row.is_pinned),
       createdAt: String(row.created_at),
       updatedAt: String(row.updated_at),
-    }));
-  }
-
-  listArchived(tagIds: string[] = []): ArchivedNotePreview[] {
-    const tagFilter = this.tagFilter(tagIds);
-    const rows = this.database
-      .prepare(`
-        SELECT notes.id, notes.title, notes.is_pinned, notes.created_at, notes.updated_at, note_archive.archived_at
-        FROM note_archive
-        INNER JOIN notes ON notes.id = note_archive.note_id
-        LEFT JOIN note_trash ON note_trash.note_id = notes.id
-        WHERE note_trash.note_id IS NULL ${tagFilter.sql}
-        ORDER BY ${orderBy(this.getSort())}
-      `)
-      .all(...tagFilter.params) as Array<Record<string, unknown>>;
-
-    return rows.map((row) => ({
-      id: String(row.id),
-      title: String(row.title),
-      isPinned: Boolean(row.is_pinned),
-      createdAt: String(row.created_at),
-      updatedAt: String(row.updated_at),
-      archivedAt: String(row.archived_at),
     }));
   }
 
@@ -324,7 +293,7 @@ export class NotesRepository {
     };
   }
 
-  forArchive(noteIds?: unknown): Note[] {
+  forExport(noteIds?: unknown): Note[] {
     if (noteIds === undefined) {
       return (this.database.prepare(`
         SELECT notes.* FROM notes
@@ -384,23 +353,6 @@ export class NotesRepository {
       SET is_pinned = ?
       WHERE id = ? AND NOT EXISTS (SELECT 1 FROM note_trash WHERE note_id = notes.id)
     `).run(Number(isPinned), id);
-    return result.changes > 0 ? this.get(id) : null;
-  }
-
-  archive(id: string) {
-    this.database
-      .prepare(`
-        INSERT INTO note_archive (note_id, archived_at)
-        SELECT id, ? FROM notes
-        WHERE id = ?
-          AND NOT EXISTS (SELECT 1 FROM note_trash WHERE note_id = ?)
-          AND NOT EXISTS (SELECT 1 FROM note_archive WHERE note_id = ?)
-      `)
-      .run(this.now().toISOString(), id, id, id);
-  }
-
-  unarchive(id: string): Note | null {
-    const result = this.database.prepare("DELETE FROM note_archive WHERE note_id = ?").run(id);
     return result.changes > 0 ? this.get(id) : null;
   }
 

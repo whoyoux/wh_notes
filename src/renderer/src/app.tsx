@@ -17,6 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -79,9 +80,11 @@ function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, 
         <div className="flex h-7 items-center gap-2 px-2">
           <img src={whNotesIcon} alt="" className="size-5 rounded-[5px]" />
           <span className="flex-1 text-xs font-semibold tracking-tight">wh_notes</span>
+        </div>
+        <div className="flex h-6 items-center gap-0.5 px-1">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button type="button" variant="ghost" size="icon-sm" aria-label={labels.sortNotes}>
+              <Button type="button" variant="ghost" size="icon-xs" aria-label={labels.sortNotes}>
                 <ArrowDownUp className="size-3.5" />
               </Button>
             </DropdownMenuTrigger>
@@ -94,7 +97,7 @@ function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, 
           </DropdownMenu>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button type="button" variant="ghost" size="icon-sm" aria-label={labels.filterTags}>
+              <Button type="button" variant="ghost" size="icon-xs" aria-label={labels.filterTags}>
                 <TagIcon className="size-3.5" />
               </Button>
             </DropdownMenuTrigger>
@@ -108,7 +111,7 @@ function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, 
           </DropdownMenu>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button type="button" variant="ghost" size="icon-sm" aria-label={labels.backup}>
+              <Button type="button" variant="ghost" size="icon-xs" aria-label={labels.backup}>
                 <MoreHorizontal className="size-3.5" />
               </Button>
             </DropdownMenuTrigger>
@@ -134,19 +137,19 @@ function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, 
           <SidebarMenuItem>
             <SidebarMenuButton size="sm" isActive={activeView === "notes"} onClick={onShowNotes}>
               <FileText className="size-3.5" />
-              <span>{labels.notes}</span>
+              <span className="text-xs leading-4">{labels.notes}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton size="sm" isActive={activeView === "archive"} onClick={onShowArchive}>
               <Archive className="size-3.5" />
-              <span>{labels.archive}</span>
+              <span className="text-xs leading-4">{labels.archive}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton size="sm" isActive={activeView === "trash"} onClick={onShowTrash}>
               <Trash2 className="size-3.5" />
-              <span>{labels.trash}</span>
+              <span className="text-xs leading-4">{labels.trash}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -161,7 +164,7 @@ function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, 
                 <SidebarMenuItem key={note.id}>
                   <SidebarMenuButton size="sm" isActive={note.id === activeId} onClick={() => onSelect(note.id)}>
                     <FileText className="size-3.5" strokeWidth={1.8} />
-                    <span>{note.title || labels.untitled}</span>
+                    <span className="text-xs leading-4">{note.title || labels.untitled}</span>
                     {note.isPinned && <Pin className="ml-auto size-3 text-muted-foreground" aria-label={labels.pinNote} />}
                   </SidebarMenuButton>
                   <DropdownMenu>
@@ -194,7 +197,7 @@ function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, 
                 <SidebarMenuItem key={note.id}>
                   <SidebarMenuButton size="sm" isActive={note.id === activeId} onClick={() => onSelect(note.id)}>
                     <FileText className="size-3.5" strokeWidth={1.8} />
-                    <span>{note.title || labels.untitled}</span>
+                    <span className="text-xs leading-4">{note.title || labels.untitled}</span>
                   </SidebarMenuButton>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -222,7 +225,7 @@ function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, 
                 <SidebarMenuItem key={note.id}>
                   <SidebarMenuButton size="sm" isActive={note.id === activeId} onClick={() => onSelect(note.id)}>
                     <FileText className="size-3.5" strokeWidth={1.8} />
-                    <span>{note.title || labels.untitled}</span>
+                    <span className="text-xs leading-4">{note.title || labels.untitled}</span>
                   </SidebarMenuButton>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -248,7 +251,7 @@ function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, 
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter style={{ marginTop: "auto", flexDirection: "row" }}>
+      <SidebarFooter className="mt-auto flex-row">
         <LanguageMenu />
         <ThemeMenu />
       </SidebarFooter>
@@ -326,7 +329,7 @@ function ArchivePasswordDialog({ action, onClose, onImported }: {
             <DialogTitle>{isExport ? text.exportArchiveTitle : text.importArchiveTitle}</DialogTitle>
             <DialogDescription>{isExport ? text.exportArchiveDescription : text.importArchiveDescription}</DialogDescription>
           </DialogHeader>
-          <div className="mt-5 grid gap-3">
+          <div className="mt-4 grid gap-2">
             <Input
               type="password"
               autoComplete="new-password"
@@ -349,9 +352,9 @@ function ArchivePasswordDialog({ action, onClose, onImported }: {
             <p className="text-xs leading-5 text-muted-foreground">{text.passwordHint}</p>
             {error && <p className="text-xs text-destructive" role="alert">{error}</p>}
           </div>
-          <DialogFooter className="mt-5">
-            <Button type="button" variant="outline" onClick={onClose} disabled={isWorking}>{text.cancel}</Button>
-            <Button type="submit" disabled={isWorking}>{isExport ? text.export : text.import}</Button>
+          <DialogFooter className="mt-4">
+            <Button type="button" size="sm" className="text-xs" variant="outline" onClick={onClose} disabled={isWorking}>{text.cancel}</Button>
+            <Button type="submit" size="sm" className="text-xs" disabled={isWorking}>{isExport ? text.export : text.import}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -408,25 +411,40 @@ function TagEditorDialog({ note, tags, open, onOpenChange, onSave }: {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
+      <DialogContent className="max-w-md gap-4 p-5">
+        <DialogHeader className="pr-6">
           <DialogTitle>{text.manageTags}</DialogTitle>
           <DialogDescription>{note?.title || text.untitled}</DialogDescription>
         </DialogHeader>
-        <form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); addTag(); }}>
-          <Input value={value} onChange={(event) => setValue(event.target.value)} placeholder={text.addTag} maxLength={50} />
-          <Button type="submit" variant="outline" size="sm">{text.addTag}</Button>
+        <form className="flex items-center gap-2" onSubmit={(event) => { event.preventDefault(); addTag(); }}>
+          <Input className="flex-1" value={value} onChange={(event) => setValue(event.target.value)} placeholder={text.addTag} maxLength={50} />
+          <Button type="submit" variant="outline" size="sm" className="shrink-0 text-xs">{text.addTag}</Button>
         </form>
-        <div className="flex flex-wrap gap-1.5">
-          {draft.map((tag) => (
-            <Button key={tag} type="button" variant="secondary" size="xs" onClick={() => setDraft((current) => current.filter((item) => item !== tag))}>
-              {tag}<X className="size-3" />
-            </Button>
-          ))}
+        <div className="space-y-2 border-t pt-3">
+          <p className="text-[11px] font-medium text-muted-foreground">{text.tags}</p>
+          {draft.length ? (
+            <div className="flex flex-wrap gap-1.5">
+              {draft.map((tag) => (
+                <Badge key={tag} variant="secondary" className="h-6 gap-1 rounded-md py-0 pr-1 pl-2 font-medium">
+                  <span>{tag}</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    className="size-4 rounded-sm"
+                    aria-label={`${text.delete}: ${tag}`}
+                    onClick={() => setDraft((current) => current.filter((item) => item !== tag))}
+                  >
+                    <X className="size-3" />
+                  </Button>
+                </Badge>
+              ))}
+            </div>
+          ) : <p className="text-xs text-muted-foreground">{text.noTags}</p>}
         </div>
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>{text.cancel}</Button>
-          <Button type="button" onClick={() => void save()} disabled={saving}>{text.saveTags}</Button>
+        <DialogFooter className="border-t pt-3">
+          <Button type="button" size="sm" className="text-xs" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>{text.cancel}</Button>
+          <Button type="button" size="sm" className="text-xs" onClick={() => void save()} disabled={saving}>{text.saveTags}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

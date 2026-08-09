@@ -9,12 +9,13 @@ import type { ArchiveExportOptions, ArchiveImportResult, ImportImagePayload, Loc
 import { APP_COMMANDS, type AppCommand } from "./shared/app-commands";
 import { decryptArchive, encryptArchive, type ArchiveDocument } from "./main/archive-crypto";
 import { IMAGE_FORMATS, MAX_IMAGE_BYTES, validateImageBytes, type ImageMimeType } from "./main/media-validation";
+import { isValidNoteId, NotesRepository } from "./main/notes-repository";
 import { backgroundColorForTheme } from "./main/window-theme";
 
 let mainWindow: BrowserWindow | null = null;
 let database: DatabaseSync;
+let notesRepository: NotesRepository;
 
-const EMPTY_DOCUMENT = { type: "doc", content: [{ type: "paragraph" }] };
 const ORPHAN_RETENTION_MS = 24 * 60 * 60 * 1000;
 type AssetRow = { id: string; file_name: string; mime_type: ImageMimeType; byte_size: number; created_at: string; orphaned_at: string | null };
 
@@ -44,24 +45,9 @@ function assetsDirectory() {
 
 function initializeDatabase() {
   database = new DatabaseSync(databasePath());
+  notesRepository = new NotesRepository(database);
+  notesRepository.initialize();
   database.exec(`
-    PRAGMA journal_mode = WAL;
-    PRAGMA foreign_keys = ON;
-
-    CREATE TABLE IF NOT EXISTS notes (
-      id TEXT PRIMARY KEY,
-      title TEXT NOT NULL DEFAULT '',
-      content_json TEXT NOT NULL,
-      is_pinned INTEGER NOT NULL DEFAULT 0,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    ) STRICT;
-
-    CREATE TABLE IF NOT EXISTS preferences (
-      key TEXT PRIMARY KEY,
-      value TEXT NOT NULL
-    ) STRICT;
-
     CREATE TABLE IF NOT EXISTS assets (
       id TEXT PRIMARY KEY,
       file_name TEXT NOT NULL UNIQUE,
@@ -165,7 +151,7 @@ function collectActiveAssetIds() {
     try {
       collectReferencedAssetIds(JSON.parse(row.content_json), ids);
     } catch {
-      // A malformed note is handled by parseContent when opened. It must not block media cleanup.
+      // A malformed note is handled safely when opened. It must not block media cleanup.
     }
   }
   return ids;
@@ -212,30 +198,8 @@ function registerMediaProtocol() {
   });
 }
 
-function parseContent(value: string): Record<string, unknown> {
-  try {
-    const parsed: unknown = JSON.parse(value);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-      ? (parsed as Record<string, unknown>)
-      : EMPTY_DOCUMENT;
-  } catch {
-    return EMPTY_DOCUMENT;
-  }
-}
-
-function noteFromRow(row: Record<string, unknown>): Note {
-  return {
-    id: String(row.id),
-    title: String(row.title),
-    content: parseContent(String(row.content_json)),
-    isPinned: Boolean(row.is_pinned),
-    createdAt: String(row.created_at),
-    updatedAt: String(row.updated_at),
-  };
-}
-
 function validId(value: unknown): value is string {
-  return typeof value === "string" && /^[a-z0-9-]{36}$/i.test(value);
+  return isValidNoteId(value);
 }
 
 function assertTrustedSender(event: IpcMainInvokeEvent) {
@@ -245,19 +209,11 @@ function assertTrustedSender(event: IpcMainInvokeEvent) {
 }
 
 function getLocale(): Locale {
-  const row = database
-    .prepare("SELECT value FROM preferences WHERE key = 'locale'")
-    .get() as { value?: string } | undefined;
-  return row?.value === "pl" ? "pl" : "en";
+  return notesRepository.getLocale();
 }
 
 function getTheme(): Theme {
-  const row = database
-    .prepare("SELECT value FROM preferences WHERE key = 'theme'")
-    .get() as { value?: string } | undefined;
-  return row?.value === "light" || row?.value === "dark" || row?.value === "system"
-    ? row.value
-    : "system";
+  return notesRepository.getTheme();
 }
 
 function currentWindowBackgroundColor() {
@@ -265,55 +221,19 @@ function currentWindowBackgroundColor() {
 }
 
 function createNote(locale = getLocale()): Note {
-  const now = new Date().toISOString();
-  const note: Note = {
-    id: crypto.randomUUID(),
-    title: locale === "pl" ? "Bez tytułu" : "Untitled",
-    content: EMPTY_DOCUMENT,
-    isPinned: false,
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  database
-    .prepare(
-      "INSERT INTO notes (id, title, content_json, is_pinned, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
-    )
-    .run(note.id, note.title, JSON.stringify(note.content), 0, now, now);
-  return note;
+  return notesRepository.create(locale);
 }
 
 function listNotes(): NotePreview[] {
-  const rows = database
-    .prepare(
-      "SELECT id, title, is_pinned, created_at, updated_at FROM notes ORDER BY is_pinned DESC, updated_at DESC",
-    )
-    .all() as Record<string, unknown>[];
-
-  return rows.map((row) => ({
-    id: String(row.id),
-    title: String(row.title),
-    isPinned: Boolean(row.is_pinned),
-    createdAt: String(row.created_at),
-    updatedAt: String(row.updated_at),
-  }));
+  return notesRepository.list();
 }
 
 function getNote(id: string): Note | null {
-  const row = database
-    .prepare("SELECT * FROM notes WHERE id = ?")
-    .get(id) as Record<string, unknown> | undefined;
-  return row ? noteFromRow(row) : null;
+  return notesRepository.get(id);
 }
 
 function notesForArchive(noteIds?: unknown): Note[] {
-  if (noteIds === undefined) {
-    return (database.prepare("SELECT * FROM notes ORDER BY created_at ASC").all() as Record<string, unknown>[]).map(noteFromRow);
-  }
-  if (!Array.isArray(noteIds) || noteIds.length === 0 || !noteIds.every(validId)) throw new Error("Invalid notes selection.");
-  const ids = [...new Set(noteIds)];
-  const placeholders = ids.map(() => "?").join(", ");
-  return (database.prepare(`SELECT * FROM notes WHERE id IN (${placeholders}) ORDER BY created_at ASC`).all(...ids) as Record<string, unknown>[]).map(noteFromRow);
+  return notesRepository.forArchive(noteIds);
 }
 
 function createArchive(noteIds?: unknown): ArchiveDocument {
@@ -368,30 +288,9 @@ function importArchiveDocument(archive: ArchiveDocument): ArchiveImportResult {
 }
 
 function saveNote(draft: NoteDraft): Note | null {
-  if (
-    !validId(draft?.id) ||
-    typeof draft.title !== "string" ||
-    draft.title.length > 500 ||
-    !draft.content ||
-    typeof draft.content !== "object"
-  ) {
-    throw new Error("Nieprawidłowy format notatki.");
-  }
-
-  const contentJson = JSON.stringify(draft.content);
-  if (contentJson.length > 2_000_000) {
-    throw new Error("Notatka jest zbyt duża.");
-  }
-
-  const now = new Date().toISOString();
-  const result = database
-    .prepare(
-      "UPDATE notes SET title = ?, content_json = ?, is_pinned = ?, updated_at = ? WHERE id = ?",
-    )
-    .run(draft.title.trim() || "Bez tytułu", contentJson, Number(draft.isPinned), now, draft.id);
-
-  if (result.changes > 0) synchronizeAssets();
-  return result.changes > 0 ? getNote(draft.id) : null;
+  const saved = notesRepository.save(draft);
+  if (saved) synchronizeAssets();
+  return saved;
 }
 
 function installIpcHandlers() {
@@ -414,7 +313,7 @@ function installIpcHandlers() {
   ipcMain.handle("notes:remove", (event, id: unknown) => {
     assertTrustedSender(event);
     if (validId(id)) {
-      database.prepare("DELETE FROM notes WHERE id = ?").run(id);
+      notesRepository.remove(id);
       synchronizeAssets();
     }
   });
@@ -520,11 +419,7 @@ function installIpcHandlers() {
     if (theme !== "light" && theme !== "dark" && theme !== "system") {
       throw new Error("Nieprawidłowy motyw.");
     }
-    database
-      .prepare(
-        "INSERT INTO preferences (key, value) VALUES ('theme', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-      )
-      .run(theme);
+    notesRepository.setTheme(theme);
     mainWindow?.setBackgroundColor(
       backgroundColorForTheme(theme, nativeTheme.shouldUseDarkColors),
     );
@@ -536,11 +431,7 @@ function installIpcHandlers() {
   ipcMain.handle("preferences:set-locale", (event, locale: unknown) => {
     assertTrustedSender(event);
     if (locale !== "en" && locale !== "pl") throw new Error("Invalid locale.");
-    database
-      .prepare(
-        "INSERT INTO preferences (key, value) VALUES ('locale', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-      )
-      .run(locale);
+    notesRepository.setLocale(locale);
     createApplicationMenu(locale);
     mainWindow?.setTitle("wh_notes");
   });

@@ -10,6 +10,7 @@
 | Encrypted archives  | AES-256-GCM round-trip, fresh encryption material, wrong password, tampering, and password policy | Vitest / Node crypto |
 | Editor data helpers | Local image URL parsing, image insertion followed by a paragraph, and readable byte labels        | Vitest               |
 | Application commands | Native menu accelerator registry and the strict allow-list exposed to the renderer                  | Vitest               |
+| Notes repository   | SQLite schema initialization, CRUD, pinned ordering, archive selection, validation, and preferences | Vitest / node:sqlite |
 
 Every pull request runs typechecking, the Vitest suite, and a runtime-dependency audit. Every change merged into `main` runs those checks again, builds native Windows and Linux installers, publishes a prerelease, writes SHA-256 checksums, and produces GitHub artifact attestations.
 

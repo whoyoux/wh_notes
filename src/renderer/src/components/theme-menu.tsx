@@ -24,7 +24,7 @@ export function ThemeMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon-sm" aria-label={text.theme}>
+        <Button variant="ghost" size="icon-xs" aria-label={text.theme}>
           {currentTheme === "dark" ? <Moon /> : currentTheme === "light" ? <Sun /> : <Monitor />}
         </Button>
       </DropdownMenuTrigger>

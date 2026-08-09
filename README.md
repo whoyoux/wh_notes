@@ -43,6 +43,7 @@ The interface is intentionally small and native-feeling: a focused notes sidebar
 - **Rich-text editor** &mdash; headings, lists, quotes, inline code, code blocks with syntax highlighting, and keyboard-friendly editing.
 - **Reliable local saving** &mdash; the editor clearly shows when a change is saving, saved on this device, or could not be written.
 - **Tested local storage** &mdash; the SQLite repository is covered by automated tests for note creation, saving, ordering, deletion, and local preferences.
+- **Trash with recovery** &mdash; deleted notes stay on this device in Trash for 30 days, where they can be restored or permanently deleted.
 - **Keyboard shortcuts** &mdash; familiar shortcuts for creating, saving, exporting, and formatting notes; the complete reference is in [Keyboard shortcuts](docs/keyboard-shortcuts.md).
 - **Local image handling** &mdash; paste or drag images into a note; wh_notes copies them into its own storage so the original file can be moved or deleted safely.
 - **Portable encrypted archives** &mdash; export one note or your complete library into an encrypted archive, then import it on another computer.
@@ -76,7 +77,7 @@ Compare the reported value with the matching entry in `SHA256SUMS.txt` before op
 
 ## Privacy
 
-wh_notes does not require a login and does not send note content to a cloud service. The app operates offline; GitHub Releases are only a place to manually download installers.
+wh_notes does not require a login and does not send note content to a cloud service. The app operates offline; GitHub Releases are only a place to manually download installers. Notes in Trash remain local for 30 days; a permanent delete cannot be undone.
 
 ## Development
 

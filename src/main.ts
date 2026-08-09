@@ -298,6 +298,10 @@ function installIpcHandlers() {
     assertTrustedSender(event);
     return listNotes();
   });
+  ipcMain.handle("notes:list-trash", (event) => {
+    assertTrustedSender(event);
+    return notesRepository.listTrash();
+  });
   ipcMain.handle("notes:get", (event, id: unknown) => {
     assertTrustedSender(event);
     return validId(id) ? getNote(id) : null;
@@ -310,10 +314,22 @@ function installIpcHandlers() {
     assertTrustedSender(event);
     return saveNote(draft);
   });
-  ipcMain.handle("notes:remove", (event, id: unknown) => {
+  ipcMain.handle("notes:move-to-trash", (event, id: unknown) => {
     assertTrustedSender(event);
     if (validId(id)) {
-      notesRepository.remove(id);
+      notesRepository.moveToTrash(id);
+      synchronizeAssets();
+    }
+  });
+  ipcMain.handle("notes:restore-from-trash", (event, id: unknown) => {
+    assertTrustedSender(event);
+    if (!validId(id)) return null;
+    return notesRepository.restoreFromTrash(id);
+  });
+  ipcMain.handle("notes:permanently-delete", (event, id: unknown) => {
+    assertTrustedSender(event);
+    if (validId(id)) {
+      notesRepository.permanentlyDelete(id);
       synchronizeAssets();
     }
   });
@@ -519,6 +535,7 @@ function createApplicationMenu(locale: Locale) {
 
 app.whenReady().then(() => {
   initializeDatabase();
+  notesRepository.purgeExpiredTrash();
   registerMediaProtocol();
   synchronizeAssets();
   installIpcHandlers();

@@ -47,6 +47,7 @@ const lowlight = createLowlight(common);
 type NoteEditorProps = {
   note: Note;
   saveStatus: SaveStatus;
+  readOnly?: boolean;
   onTitleChange: (title: string) => void;
   onContentChange: (content: Record<string, unknown>) => void;
 };
@@ -218,7 +219,7 @@ function insertImage(editor: Editor, image: LocalImage, position?: number, alt =
   else chain.insertContent(contentWithParagraph).run();
 }
 
-export function NoteEditor({ note, saveStatus, onTitleChange, onContentChange }: NoteEditorProps) {
+export function NoteEditor({ note, saveStatus, readOnly = false, onTitleChange, onContentChange }: NoteEditorProps) {
   const { text } = useI18n();
   const onContentChangeRef = useRef(onContentChange);
   const importImageFilesRef = useRef<(currentEditor: Editor, files: File[], position?: number) => Promise<void>>(async () => undefined);
@@ -304,6 +305,7 @@ export function NoteEditor({ note, saveStatus, onTitleChange, onContentChange }:
       }),
     ],
     content: note.content,
+    editable: !readOnly,
     shouldRerenderOnTransaction: false,
     editorProps: {
       attributes: { class: "tiptap prose-editor focus:outline-none" },
@@ -344,6 +346,7 @@ export function NoteEditor({ note, saveStatus, onTitleChange, onContentChange }:
         <input
           value={note.title}
           onChange={(event) => onTitleChange(event.target.value)}
+          disabled={readOnly}
           className="editor-title"
           aria-label={text.noteTitle}
           placeholder={text.untitled}
@@ -357,7 +360,7 @@ export function NoteEditor({ note, saveStatus, onTitleChange, onContentChange }:
         </div>
       </header>
       <Tiptap editor={editor}>
-        <EditorToolbar onInsertImage={pickImage} />
+        {!readOnly && <EditorToolbar onInsertImage={pickImage} />}
         <div className="editor-scroll-area">
           <div className="editor-page"><Tiptap.Content /></div>
         </div>

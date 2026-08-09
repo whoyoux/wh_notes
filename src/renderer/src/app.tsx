@@ -5,7 +5,7 @@ import { NoteEditor } from "@/components/note-editor";
 import whNotesIcon from "@/assets/wh-notes-icon.png";
 import { ThemeMenu } from "@/components/theme-menu";
 import { LanguageMenu } from "@/components/language-menu";
-import { SearchNotesDialog } from "@/components/search-notes-dialog";
+import { CommandPalette, type CommandPaletteAction } from "@/components/command-palette";
 import { useI18n } from "@/components/locale-provider";
 import { resolveSaveStatus, type SaveStatus } from "@/lib/save-status";
 import {
@@ -440,7 +440,7 @@ export function App() {
   const [activeTags, setActiveTags] = useState<Tag[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [tagEditorOpen, setTagEditorOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [activeView, setActiveView] = useState<"notes" | "trash">("notes");
   const [activeNote, setActiveNote] = useState<Note | null>(null);
   const [loading, setLoading] = useState(true);
@@ -713,19 +713,38 @@ export function App() {
     setArchiveAction({ mode: "export", noteIds: [id] });
   }, [flushActiveNote]);
 
-  const selectSearchResult = useCallback((result: NoteSearchResult) => {
-    setSearchOpen(false);
+  const selectCommandPaletteNote = useCallback((result: NoteSearchResult) => {
+    setCommandPaletteOpen(false);
     setActiveView("notes");
     void selectNote(result.id);
   }, [selectNote]);
+
+  const runCommandPaletteAction = useCallback((action: CommandPaletteAction) => {
+    if (action === "new-note") {
+      void createNote();
+      return;
+    }
+    if (action === "save-note") {
+      void flushActiveNote();
+      return;
+    }
+
+    const active = activeNoteRef.current;
+    if (!active || activeView === "trash") return;
+    if (action === "export-note") {
+      void exportNote(active.id);
+      return;
+    }
+    setNoteToTrash(active);
+  }, [activeView, createNote, exportNote, flushActiveNote]);
 
   const runAppCommand = useCallback((command: AppCommand) => {
     if (command === "new-note") {
       void createNote();
       return;
     }
-    if (command === "search-notes") {
-      setSearchOpen(true);
+    if (command === "command-palette") {
+      setCommandPaletteOpen(true);
       return;
     }
     if (command === "save-note") {
@@ -790,7 +809,18 @@ export function App() {
         )}
       </SidebarInset>
 
-      <SearchNotesDialog open={searchOpen} onOpenChange={setSearchOpen} onSelect={selectSearchResult} />
+      <CommandPalette
+        open={commandPaletteOpen}
+        onOpenChange={setCommandPaletteOpen}
+        actions={[
+          { id: "new-note" },
+          { id: "save-note", disabled: !activeNote || activeView === "trash" },
+          { id: "export-note", disabled: !activeNote || activeView === "trash" },
+          { id: "move-to-trash", disabled: !activeNote || activeView === "trash" },
+        ]}
+        onAction={runCommandPaletteAction}
+        onSelectNote={selectCommandPaletteNote}
+      />
       <AlertDialog open={Boolean(noteToTrash)} onOpenChange={(open) => !open && setNoteToTrash(null)}>
         <AlertDialogContent size="sm">
           <AlertDialogHeader>

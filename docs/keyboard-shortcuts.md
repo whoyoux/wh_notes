@@ -7,7 +7,7 @@ wh_notes uses familiar system shortcuts. On macOS use <kbd>⌘</kbd>; on Windows
 | Action | macOS | Windows / Linux |
 | ------ | ----- | --------------- |
 | New note | <kbd>⌘</kbd> <kbd>N</kbd> | <kbd>Ctrl</kbd> <kbd>N</kbd> |
-| Search notes | <kbd>⌘</kbd> <kbd>K</kbd> | <kbd>Ctrl</kbd> <kbd>K</kbd> |
+| Command palette / search notes | <kbd>⌘</kbd> <kbd>K</kbd> | <kbd>Ctrl</kbd> <kbd>K</kbd> |
 | Save now | <kbd>⌘</kbd> <kbd>S</kbd> | <kbd>Ctrl</kbd> <kbd>S</kbd> |
 | Export current note | <kbd>⌘</kbd> <kbd>Shift</kbd> <kbd>E</kbd> | <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>E</kbd> |
 

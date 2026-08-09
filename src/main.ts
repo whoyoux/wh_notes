@@ -537,9 +537,9 @@ function createApplicationMenu(locale: Locale) {
             click: () => sendAppCommand("new-note"),
           },
           {
-            label: pl ? "Szukaj notatek" : "Search notes",
-            accelerator: APP_COMMANDS["search-notes"].accelerator,
-            click: () => sendAppCommand("search-notes"),
+            label: pl ? "Paleta poleceń" : "Command palette",
+            accelerator: APP_COMMANDS["command-palette"].accelerator,
+            click: () => sendAppCommand("command-palette"),
           },
           {
             label: pl ? "Zapisz teraz" : "Save now",

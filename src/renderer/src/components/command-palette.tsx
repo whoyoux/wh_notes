@@ -1,5 +1,5 @@
 import { useDeferredValue, useEffect, useRef, useState } from "react";
-import { FileText } from "lucide-react";
+import { Download, FilePlus, FileText, Save, Trash2 } from "lucide-react";
 import { useI18n } from "@/components/locale-provider";
 import {
   Command,
@@ -12,13 +12,17 @@ import {
 } from "@/components/ui/command";
 import type { NoteSearchResult } from "../../../shared/types";
 
-type SearchNotesDialogProps = {
+export type CommandPaletteAction = "new-note" | "save-note" | "export-note" | "move-to-trash";
+
+type CommandPaletteProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSelect: (result: NoteSearchResult) => void;
+  actions: Array<{ id: CommandPaletteAction; disabled?: boolean }>;
+  onAction: (action: CommandPaletteAction) => void;
+  onSelectNote: (result: NoteSearchResult) => void;
 };
 
-export function SearchNotesDialog({ open, onOpenChange, onSelect }: SearchNotesDialogProps) {
+export function CommandPalette({ open, onOpenChange, actions, onAction, onSelectNote }: CommandPaletteProps) {
   const { text } = useI18n();
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
@@ -75,15 +79,32 @@ export function SearchNotesDialog({ open, onOpenChange, onSelect }: SearchNotesD
     setResults([]);
   };
 
+  const actionDefinitions = {
+    "new-note": { icon: FilePlus, label: text.newNote },
+    "save-note": { icon: Save, label: text.saveNow },
+    "export-note": { icon: Download, label: text.exportCurrentNote },
+    "move-to-trash": { icon: Trash2, label: text.moveToTrash },
+  } satisfies Record<CommandPaletteAction, { icon: typeof FileText; label: string }>;
+
+  const runAction = (action: CommandPaletteAction) => {
+    onOpenChange(false);
+    onAction(action);
+  };
+
+  const selectNote = (result: NoteSearchResult) => {
+    onOpenChange(false);
+    onSelectNote(result);
+  };
+
   return (
     <CommandDialog
       open={open}
       onOpenChange={onOpenChange}
-      title={text.searchNotes}
-      description={text.searchNotesDescription}
+      title={text.commandPalette}
+      description={text.commandPaletteDescription}
       className="max-w-lg"
     >
-      <Command shouldFilter={false} loop label={text.searchNotes}>
+      <Command shouldFilter={false} loop label={text.commandPalette}>
         <CommandInput
           autoFocus
           value={query}
@@ -92,7 +113,18 @@ export function SearchNotesDialog({ open, onOpenChange, onSelect }: SearchNotesD
         />
         <CommandList>
           {!query.trim() ? (
-            <CommandEmpty>{text.searchStart}</CommandEmpty>
+            <CommandGroup heading={text.commandActions}>
+              {actions.map((action) => {
+                const definition = actionDefinitions[action.id];
+                const Icon = definition.icon;
+                return (
+                  <CommandItem key={action.id} value={action.id} disabled={action.disabled} onSelect={() => runAction(action.id)}>
+                    <Icon />
+                    {definition.label}
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
           ) : isSearching ? (
             <CommandEmpty>{text.searching}</CommandEmpty>
           ) : results.length === 0 ? (
@@ -100,7 +132,7 @@ export function SearchNotesDialog({ open, onOpenChange, onSelect }: SearchNotesD
           ) : (
             <CommandGroup heading={text.searchNotes}>
               {results.map((result) => (
-                <CommandItem key={result.id} value={result.id} onSelect={() => onSelect(result)}>
+                <CommandItem key={result.id} value={result.id} onSelect={() => selectNote(result)}>
                   <FileText />
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="truncate">{result.title || text.untitled}</span>

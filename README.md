@@ -20,6 +20,8 @@
   &middot;
   <a href="#features">Features</a>
   &middot;
+  <a href="docs/keyboard-shortcuts.md">Keyboard shortcuts</a>
+  &middot;
   <a href="#install">Install</a>
   &middot;
   <a href="#privacy">Privacy</a>
@@ -40,6 +42,7 @@ The interface is intentionally small and native-feeling: a focused notes sidebar
 - **Offline by design** &mdash; notes, preferences, images, and encrypted archives stay on your device.
 - **Rich-text editor** &mdash; headings, lists, quotes, inline code, code blocks with syntax highlighting, and keyboard-friendly editing.
 - **Reliable local saving** &mdash; the editor clearly shows when a change is saving, saved on this device, or could not be written.
+- **Keyboard shortcuts** &mdash; familiar shortcuts for creating, saving, exporting, and formatting notes; the complete reference is in [Keyboard shortcuts](docs/keyboard-shortcuts.md).
 - **Local image handling** &mdash; paste or drag images into a note; wh_notes copies them into its own storage so the original file can be moved or deleted safely.
 - **Portable encrypted archives** &mdash; export one note or your complete library into an encrypted archive, then import it on another computer.
 - **Light and dark themes** &mdash; powered by shadcn/ui, with the choice stored locally.

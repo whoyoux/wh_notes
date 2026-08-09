@@ -41,6 +41,7 @@ import {
   SidebarMenuItem,
   SidebarProvider,
 } from "@/components/ui/sidebar";
+import type { AppCommand } from "../../shared/app-commands";
 import type { Note, NotePreview } from "../../shared/types";
 
 type NotesSidebarProps = {
@@ -296,8 +297,6 @@ export function App() {
     await refreshNotes();
   }, [refreshNotes, setNoteSaveStatus]);
 
-  useEffect(() => window.notes.onNewNote(() => void createNote()), [createNote]);
-
   useEffect(
     () => () => {
       for (const pending of pendingSavesRef.current.values()) {
@@ -434,6 +433,21 @@ export function App() {
     if (activeNoteRef.current?.id === id) await flushActiveNote();
     setArchiveAction({ mode: "export", noteIds: [id] });
   }, [flushActiveNote]);
+
+  const runAppCommand = useCallback((command: AppCommand) => {
+    if (command === "new-note") {
+      void createNote();
+      return;
+    }
+    if (command === "save-note") {
+      void flushActiveNote();
+      return;
+    }
+    const activeId = activeNoteRef.current?.id;
+    if (activeId) void exportNote(activeId);
+  }, [createNote, exportNote, flushActiveNote]);
+
+  useEffect(() => window.notes.onAppCommand(runAppCommand), [runAppCommand]);
 
   return (
     <SidebarProvider

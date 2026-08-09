@@ -43,7 +43,7 @@ The interface is intentionally small and native-feeling: a focused notes sidebar
 - **Rich-text editor** &mdash; headings, lists, quotes, inline code, code blocks with syntax highlighting, and keyboard-friendly editing.
 - **Reliable local saving** &mdash; the editor clearly shows when a change is saving, saved on this device, or could not be written.
 - **Tested local storage** &mdash; the SQLite repository is covered by automated tests for note creation, saving, ordering, deletion, and local preferences.
-- **Local search** &mdash; press <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>K</kbd> to search note titles and text through a local SQLite FTS5 index; Trash is never included.
+- **Command palette and local search** &mdash; press <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>K</kbd> to search note titles and text through a local SQLite FTS5 index or run a key action; Trash is never included.
 - **Trash with recovery** &mdash; deleted notes stay on this device in Trash for 30 days, where they can be restored or permanently deleted.
 - **Pinned notes** &mdash; keep important notes at the top of the active list with a small, local pin.
 - **Local sorting** &mdash; order notes by edit time, creation time, or title; the choice stays on your device.

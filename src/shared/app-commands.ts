@@ -1,6 +1,6 @@
 export const APP_COMMANDS = {
   "new-note": { accelerator: "CmdOrCtrl+N" },
-  "search-notes": { accelerator: "CmdOrCtrl+K" },
+  "command-palette": { accelerator: "CmdOrCtrl+K" },
   "save-note": { accelerator: "CmdOrCtrl+S" },
   "export-note": { accelerator: "CmdOrCtrl+Shift+E" },
 } as const;

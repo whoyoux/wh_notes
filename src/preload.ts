@@ -4,11 +4,14 @@ import type { ArchiveExportOptions, ImportImagePayload, Locale, NoteDraft, Notes
 
 const notesApi: NotesApi = {
   list: () => ipcRenderer.invoke("notes:list"),
+  listArchived: () => ipcRenderer.invoke("notes:list-archived"),
   listTrash: () => ipcRenderer.invoke("notes:list-trash"),
   get: (id) => ipcRenderer.invoke("notes:get", id),
   create: () => ipcRenderer.invoke("notes:create"),
   save: (draft: NoteDraft) => ipcRenderer.invoke("notes:save", draft),
   moveToTrash: (id) => ipcRenderer.invoke("notes:move-to-trash", id),
+  archive: (id) => ipcRenderer.invoke("notes:archive", id),
+  unarchive: (id) => ipcRenderer.invoke("notes:unarchive", id),
   restoreFromTrash: (id) => ipcRenderer.invoke("notes:restore-from-trash", id),
   permanentlyDelete: (id) => ipcRenderer.invoke("notes:permanently-delete", id),
   getTheme: () => ipcRenderer.invoke("preferences:get-theme"),

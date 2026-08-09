@@ -91,15 +91,39 @@ describe("NotesRepository", () => {
     expect(repository.list().map((note) => note.id)).toEqual([first.id, second.id]);
   });
 
-  it("returns archive selections in their creation order and rejects unsafe selections", () => {
-    const { repository } = createRepository();
+  it("keeps active, archived, and trashed notes separate while exporting active and archived notes", () => {
+    const { repository, advance } = createRepository();
     const first = repository.create();
+    advance(1);
     const second = repository.create();
-    repository.moveToTrash(first.id);
+    advance(1);
+    const third = repository.create();
+    repository.archive(second.id);
+    repository.moveToTrash(third.id);
 
-    expect(repository.forArchive([second.id, first.id]).map((note) => note.id)).toEqual([second.id]);
+    expect(repository.list().map((note) => note.id)).toEqual([first.id]);
+    expect(repository.listArchived()).toMatchObject([{ id: second.id }]);
+    expect(repository.listTrash()).toMatchObject([{ id: third.id }]);
+    expect(repository.forArchive().map((note) => note.id)).toEqual([first.id, second.id]);
+    expect(repository.forArchive([third.id, second.id]).map((note) => note.id)).toEqual([second.id]);
     expect(() => repository.forArchive([])).toThrow("Invalid notes selection.");
     expect(() => repository.forArchive(["not-an-id"])).toThrow("Invalid notes selection.");
+  });
+
+  it("restores a trashed archive back to the archive and unarchives it safely", () => {
+    const { repository } = createRepository();
+    const note = repository.create();
+
+    repository.archive(note.id);
+    repository.moveToTrash(note.id);
+    expect(repository.listArchived()).toEqual([]);
+
+    expect(repository.restoreFromTrash(note.id)).toMatchObject({ id: note.id });
+    expect(repository.listArchived()).toMatchObject([{ id: note.id }]);
+
+    expect(repository.unarchive(note.id)).toMatchObject({ id: note.id });
+    expect(repository.list().map((item) => item.id)).toEqual([note.id]);
+    expect(repository.unarchive(note.id)).toBeNull();
   });
 
   it("does not write malformed drafts and moves notes to a recoverable trash", () => {

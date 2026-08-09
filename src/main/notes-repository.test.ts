@@ -95,20 +95,46 @@ describe("NotesRepository", () => {
     const { repository } = createRepository();
     const first = repository.create();
     const second = repository.create();
+    repository.moveToTrash(first.id);
 
-    expect(repository.forArchive([second.id, first.id]).map((note) => note.id)).toEqual([first.id, second.id]);
+    expect(repository.forArchive([second.id, first.id]).map((note) => note.id)).toEqual([second.id]);
     expect(() => repository.forArchive([])).toThrow("Invalid notes selection.");
     expect(() => repository.forArchive(["not-an-id"])).toThrow("Invalid notes selection.");
   });
 
-  it("does not write malformed drafts and removes notes explicitly", () => {
+  it("does not write malformed drafts and moves notes to a recoverable trash", () => {
     const { repository } = createRepository();
     const note = repository.create();
 
     expect(() => repository.save({ ...note, title: "x".repeat(501) })).toThrow("Invalid note payload.");
     expect(repository.save({ ...note, content: { type: "doc", content: [] }, title: "  " })).toMatchObject({ title: "Bez tytułu" });
 
-    repository.remove(note.id);
-    expect(repository.get(note.id)).toBeNull();
+    repository.moveToTrash(note.id);
+    expect(repository.list()).toEqual([]);
+    expect(repository.listTrash()).toMatchObject([{ id: note.id, title: "Bez tytułu" }]);
+
+    expect(repository.restoreFromTrash(note.id)).toMatchObject({ id: note.id, title: "Bez tytułu" });
+    expect(repository.list().map((item) => item.id)).toEqual([note.id]);
+    expect(repository.listTrash()).toEqual([]);
+  });
+
+  it("permanently deletes only trash and purges notes after the 30-day recovery window", () => {
+    const { repository } = createRepository();
+    const active = repository.create();
+    const trashed = repository.create();
+    repository.moveToTrash(trashed.id);
+
+    repository.permanentlyDelete(active.id);
+    expect(repository.get(active.id)).not.toBeNull();
+
+    repository.purgeExpiredTrash(new Date("2026-09-07T09:59:59.999Z"));
+    expect(repository.get(trashed.id)).not.toBeNull();
+
+    repository.purgeExpiredTrash(new Date("2026-09-08T10:00:00.000Z"));
+    expect(repository.get(trashed.id)).toBeNull();
+
+    repository.moveToTrash(active.id);
+    repository.permanentlyDelete(active.id);
+    expect(repository.get(active.id)).toBeNull();
   });
 });

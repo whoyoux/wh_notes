@@ -15,6 +15,10 @@ export type Note = NotePreview & {
   content: Record<string, unknown>;
 };
 
+export type TrashedNotePreview = NotePreview & {
+  trashedAt: string;
+};
+
 export type NoteDraft = Pick<Note, "id" | "title" | "content" | "isPinned">;
 
 export type LocalImage = {
@@ -49,10 +53,13 @@ export type ArchiveImportResult = {
 
 export type NotesApi = {
   list: () => Promise<NotePreview[]>;
+  listTrash: () => Promise<TrashedNotePreview[]>;
   get: (id: string) => Promise<Note | null>;
   create: () => Promise<Note>;
   save: (draft: NoteDraft) => Promise<Note | null>;
-  remove: (id: string) => Promise<void>;
+  moveToTrash: (id: string) => Promise<void>;
+  restoreFromTrash: (id: string) => Promise<Note | null>;
+  permanentlyDelete: (id: string) => Promise<void>;
   getTheme: () => Promise<Theme>;
   setTheme: (theme: Theme) => Promise<void>;
   getLocale: () => Promise<Locale>;

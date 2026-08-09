@@ -1,6 +1,9 @@
 import { randomUUID } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
-import type { Locale, Note, NoteDraft, NotePreview, Theme } from "../shared/types";
+import type { Locale, Note, NoteDraft, NotePreview, Theme, TrashedNotePreview } from "../shared/types";
+
+export const TRASH_RETENTION_DAYS = 30;
+const TRASH_RETENTION_MS = TRASH_RETENTION_DAYS * 24 * 60 * 60 * 1000;
 
 export const EMPTY_DOCUMENT: Record<string, unknown> = {
   type: "doc",
@@ -68,6 +71,13 @@ export class NotesRepository {
         key TEXT PRIMARY KEY,
         value TEXT NOT NULL
       ) STRICT;
+
+      CREATE TABLE IF NOT EXISTS note_trash (
+        note_id TEXT PRIMARY KEY REFERENCES notes(id) ON DELETE CASCADE,
+        trashed_at TEXT NOT NULL
+      ) STRICT;
+
+      CREATE INDEX IF NOT EXISTS note_trash_trashed_at_idx ON note_trash(trashed_at);
     `);
   }
 
@@ -118,7 +128,13 @@ export class NotesRepository {
 
   list(): NotePreview[] {
     const rows = this.database
-      .prepare("SELECT id, title, is_pinned, created_at, updated_at FROM notes ORDER BY is_pinned DESC, updated_at DESC")
+      .prepare(`
+        SELECT notes.id, notes.title, notes.is_pinned, notes.created_at, notes.updated_at
+        FROM notes
+        LEFT JOIN note_trash ON note_trash.note_id = notes.id
+        WHERE note_trash.note_id IS NULL
+        ORDER BY notes.is_pinned DESC, notes.updated_at DESC
+      `)
       .all() as Record<string, unknown>[];
 
     return rows.map((row) => ({
@@ -127,6 +143,26 @@ export class NotesRepository {
       isPinned: Boolean(row.is_pinned),
       createdAt: String(row.created_at),
       updatedAt: String(row.updated_at),
+    }));
+  }
+
+  listTrash(): TrashedNotePreview[] {
+    const rows = this.database
+      .prepare(`
+        SELECT notes.id, notes.title, notes.is_pinned, notes.created_at, notes.updated_at, note_trash.trashed_at
+        FROM note_trash
+        INNER JOIN notes ON notes.id = note_trash.note_id
+        ORDER BY note_trash.trashed_at DESC
+      `)
+      .all() as Array<Record<string, unknown>>;
+
+    return rows.map((row) => ({
+      id: String(row.id),
+      title: String(row.title),
+      isPinned: Boolean(row.is_pinned),
+      createdAt: String(row.created_at),
+      updatedAt: String(row.updated_at),
+      trashedAt: String(row.trashed_at),
     }));
   }
 
@@ -139,14 +175,24 @@ export class NotesRepository {
 
   forArchive(noteIds?: unknown): Note[] {
     if (noteIds === undefined) {
-      return (this.database.prepare("SELECT * FROM notes ORDER BY created_at ASC").all() as Record<string, unknown>[]).map(noteFromRow);
+      return (this.database.prepare(`
+        SELECT notes.* FROM notes
+        LEFT JOIN note_trash ON note_trash.note_id = notes.id
+        WHERE note_trash.note_id IS NULL
+        ORDER BY notes.created_at ASC
+      `).all() as Record<string, unknown>[]).map(noteFromRow);
     }
     if (!Array.isArray(noteIds) || noteIds.length === 0 || !noteIds.every(isValidNoteId)) {
       throw new Error("Invalid notes selection.");
     }
     const ids = [...new Set(noteIds)];
     const placeholders = ids.map(() => "?").join(", ");
-    return (this.database.prepare(`SELECT * FROM notes WHERE id IN (${placeholders}) ORDER BY created_at ASC`).all(...ids) as Record<string, unknown>[]).map(noteFromRow);
+    return (this.database.prepare(`
+      SELECT notes.* FROM notes
+      LEFT JOIN note_trash ON note_trash.note_id = notes.id
+      WHERE notes.id IN (${placeholders}) AND note_trash.note_id IS NULL
+      ORDER BY notes.created_at ASC
+    `).all(...ids) as Record<string, unknown>[]).map(noteFromRow);
   }
 
   save(draft: NoteDraft): Note | null {
@@ -170,7 +216,34 @@ export class NotesRepository {
     return result.changes > 0 ? this.get(draft.id) : null;
   }
 
-  remove(id: string) {
-    this.database.prepare("DELETE FROM notes WHERE id = ?").run(id);
+  moveToTrash(id: string) {
+    const now = this.now().toISOString();
+    this.database
+      .prepare(`
+        INSERT INTO note_trash (note_id, trashed_at)
+        SELECT id, ? FROM notes
+        WHERE id = ? AND NOT EXISTS (SELECT 1 FROM note_trash WHERE note_id = ?)
+      `)
+      .run(now, id, id);
+  }
+
+  restoreFromTrash(id: string): Note | null {
+    const result = this.database.prepare("DELETE FROM note_trash WHERE note_id = ?").run(id);
+    return result.changes > 0 ? this.get(id) : null;
+  }
+
+  permanentlyDelete(id: string) {
+    this.database.prepare(`
+      DELETE FROM notes
+      WHERE id = ? AND EXISTS (SELECT 1 FROM note_trash WHERE note_id = notes.id)
+    `).run(id);
+  }
+
+  purgeExpiredTrash(now = this.now()) {
+    const cutoff = new Date(now.getTime() - TRASH_RETENTION_MS).toISOString();
+    this.database.prepare(`
+      DELETE FROM notes
+      WHERE id IN (SELECT note_id FROM note_trash WHERE trashed_at <= ?)
+    `).run(cutoff);
   }
 }

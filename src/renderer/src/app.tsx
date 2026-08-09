@@ -78,6 +78,8 @@ type NotesSidebarProps = {
   onImport: () => void;
 };
 
+const compactDropdownMenuClassName = "[&_[data-slot=dropdown-menu-item]]:text-xs [&_[data-slot=dropdown-menu-checkbox-item]]:text-xs [&_[data-slot=dropdown-menu-sub-trigger]]:text-xs";
+
 function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, tags, selectedTagIds, labels, onCreate, onSetSort, onToggleTagFilter, onShowNotes, onShowArchive, onShowTrash, onSelect, onRequestMoveToTrash, onSetPinned, onArchiveNote, onUnarchiveNote, onRestoreNote, onRequestPermanentDelete, onExportNote, onExportAll, onImport }: NotesSidebarProps) {
   return (
     <Sidebar>
@@ -92,14 +94,14 @@ function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, 
                   <MoreHorizontal className="ml-auto" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
+              <DropdownMenuContent align="start" className={compactDropdownMenuClassName}>
                 <DropdownMenuGroup>
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
                       <ArrowDownUp />
                       {labels.sortNotes}
                     </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent>
+                    <DropdownMenuSubContent className={compactDropdownMenuClassName}>
                       <DropdownMenuGroup>
                         <DropdownMenuItem onSelect={() => onSetSort("updated-desc")}>{labels.sortRecentlyEdited}</DropdownMenuItem>
                         <DropdownMenuItem onSelect={() => onSetSort("updated-asc")}>{labels.sortOldestEdited}</DropdownMenuItem>
@@ -113,7 +115,7 @@ function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, 
                       <TagIcon />
                       {labels.filterTags}
                     </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent>
+                    <DropdownMenuSubContent className={compactDropdownMenuClassName}>
                       <DropdownMenuGroup>
                         {tags.length === 0 ? <DropdownMenuItem disabled>{labels.noTags}</DropdownMenuItem> : tags.map((tag) => (
                           <DropdownMenuCheckboxItem key={tag.id} checked={selectedTagIds.includes(tag.id)} onCheckedChange={() => onToggleTagFilter(tag.id)}>
@@ -183,7 +185,7 @@ function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, 
                         <MoreHorizontal />
                       </SidebarMenuAction>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent side="right" align="start">
+                    <DropdownMenuContent side="right" align="start" className={compactDropdownMenuClassName}>
                       <DropdownMenuGroup>
                         <DropdownMenuItem onSelect={() => onSetPinned(note.id, !note.isPinned)}>
                           <Pin />
@@ -220,7 +222,7 @@ function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, 
                         <MoreHorizontal />
                       </SidebarMenuAction>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent side="right" align="start">
+                    <DropdownMenuContent side="right" align="start" className={compactDropdownMenuClassName}>
                       <DropdownMenuGroup>
                         <DropdownMenuItem onSelect={() => onUnarchiveNote(note.id)}>
                           <Archive />
@@ -253,7 +255,7 @@ function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, 
                         <MoreHorizontal />
                       </SidebarMenuAction>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent side="right" align="start">
+                    <DropdownMenuContent side="right" align="start" className={compactDropdownMenuClassName}>
                       <DropdownMenuGroup>
                         <DropdownMenuItem onSelect={() => onRestoreNote(note.id)}>
                           <Upload />
@@ -443,7 +445,7 @@ function TagEditorDialog({ note, tags, open, onOpenChange, onSave }: {
         </DialogHeader>
         <form className="flex items-center gap-2" onSubmit={(event) => { event.preventDefault(); addTag(); }}>
           <Input className="flex-1" value={value} onChange={(event) => setValue(event.target.value)} placeholder={text.addTag} maxLength={50} />
-          <Button type="submit" variant="outline" size="xs" className="shrink-0">{text.addTag}</Button>
+          <Button type="submit" variant="outline" className="shrink-0 text-xs">{text.addTag}</Button>
         </form>
         <div className="flex flex-col gap-2">
           <p className="text-xs font-medium text-muted-foreground">{text.tags}</p>

@@ -29,7 +29,7 @@ export function ThemeMenu() {
           {currentTheme === "dark" ? <Moon /> : currentTheme === "light" ? <Sun /> : <Monitor />}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="min-w-0 w-auto">
+      <DropdownMenuContent align="start" className="min-w-0 w-auto [&_[data-slot=dropdown-menu-item]]:text-xs">
         <DropdownMenuGroup>
           <DropdownMenuItem onSelect={() => changeTheme("light")}><Sun />{text.light}</DropdownMenuItem>
           <DropdownMenuItem onSelect={() => changeTheme("dark")}><Moon />{text.dark}</DropdownMenuItem>

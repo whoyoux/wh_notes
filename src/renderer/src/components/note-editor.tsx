@@ -131,7 +131,7 @@ function ImageNodeView({ node, selected, deleteNode }: ReactNodeViewProps) {
             <MoreHorizontal className="size-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" side="bottom">
+        <DropdownMenuContent align="end" side="bottom" className="[&_[data-slot=dropdown-menu-item]]:text-xs">
           <DropdownMenuItem onSelect={() => void copyImage()} disabled={!imageId}>
             <Copy />
             {text.copyImage}

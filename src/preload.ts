@@ -5,6 +5,7 @@ import type { ArchiveExportOptions, ImportImagePayload, Locale, NoteDraft, Notes
 const notesApi: NotesApi = {
   list: (tagIds) => ipcRenderer.invoke("notes:list", tagIds),
   listTrash: () => ipcRenderer.invoke("notes:list-trash"),
+  search: (query) => ipcRenderer.invoke("notes:search", query),
   get: (id) => ipcRenderer.invoke("notes:get", id),
   create: () => ipcRenderer.invoke("notes:create"),
   save: (draft: NoteDraft) => ipcRenderer.invoke("notes:save", draft),

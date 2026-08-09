@@ -228,6 +228,10 @@ function listNotes(): NotePreview[] {
   return notesRepository.list();
 }
 
+function searchNotes(query: string) {
+  return notesRepository.search(query);
+}
+
 function getNote(id: string): Note | null {
   return notesRepository.get(id);
 }
@@ -301,6 +305,10 @@ function installIpcHandlers() {
   ipcMain.handle("notes:list-trash", (event) => {
     assertTrustedSender(event);
     return notesRepository.listTrash();
+  });
+  ipcMain.handle("notes:search", (event, query: unknown) => {
+    assertTrustedSender(event);
+    return typeof query === "string" ? searchNotes(query) : [];
   });
   ipcMain.handle("notes:get", (event, id: unknown) => {
     assertTrustedSender(event);
@@ -527,6 +535,11 @@ function createApplicationMenu(locale: Locale) {
             label: pl ? "Nowa notatka" : "New note",
             accelerator: APP_COMMANDS["new-note"].accelerator,
             click: () => sendAppCommand("new-note"),
+          },
+          {
+            label: pl ? "Szukaj notatek" : "Search notes",
+            accelerator: APP_COMMANDS["search-notes"].accelerator,
+            click: () => sendAppCommand("search-notes"),
           },
           {
             label: pl ? "Zapisz teraz" : "Save now",

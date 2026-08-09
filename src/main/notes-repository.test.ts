@@ -38,7 +38,8 @@ describe("NotesRepository", () => {
 
     const tables = (database.prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name ASC").all() as Array<{ name: string }>)
       .map(({ name }) => name);
-    expect(tables).toEqual(["note_tags", "note_trash", "notes", "preferences", "tags"]);
+    expect(tables).toEqual(expect.arrayContaining(["note_search", "note_tags", "note_trash", "notes", "preferences", "tags"]));
+    expect(tables).not.toContain("note_archive");
 
     expect(repository.getLocale()).toBe("en");
     expect(repository.getTheme()).toBe("system");
@@ -190,6 +191,38 @@ describe("NotesRepository", () => {
     repository.setTags(second.id, []);
     expect(repository.listTags()).toEqual([]);
     expect(personal).toBeDefined();
+  });
+
+  it("searches active note titles and content locally, updates its index, and excludes Trash", () => {
+    const { repository, advance } = createRepository();
+    const active = repository.create();
+    advance(1);
+    const second = repository.create();
+
+    repository.save({
+      ...active,
+      title: "Offline roadmap",
+      content: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "A private zero knowledge notebook" }] }] },
+    });
+    repository.save({
+      ...second,
+      title: "Reference material",
+      content: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Local reference research" }] }] },
+    });
+
+    expect(repository.search("offlin")).toMatchObject([{ id: active.id }]);
+    expect(repository.search("knowledge")).toMatchObject([{ id: active.id, excerpt: "A private zero knowledge notebook" }]);
+    expect(repository.search("reference")).toMatchObject([{ id: second.id }]);
+    expect(repository.search("paragraph")).toEqual([]);
+    expect(repository.search("+++ ")).toEqual([]);
+
+    repository.moveToTrash(active.id);
+    expect(repository.search("offlin")).toEqual([]);
+
+    repository.restoreFromTrash(active.id);
+    repository.save({ ...active, title: "Fresh plan", content: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "A local vault" }] }] } });
+    expect(repository.search("offlin")).toEqual([]);
+    expect(repository.search("vault")).toMatchObject([{ id: active.id, excerpt: "A local vault" }]);
   });
 
   it("does not write malformed drafts and moves notes to a recoverable trash", () => {

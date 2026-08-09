@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
-import type { Locale, Note, NoteDraft, NotePreview, NoteSort, Tag, Theme, TrashedNotePreview } from "../shared/types";
+import type { Locale, Note, NoteDraft, NotePreview, NoteSearchResult, NoteSort, Tag, Theme, TrashedNotePreview } from "../shared/types";
 
 export const TRASH_RETENTION_DAYS = 30;
 const TRASH_RETENTION_MS = TRASH_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+const SEARCH_RESULT_LIMIT = 50;
 export const DEFAULT_NOTE_SORT: NoteSort = "updated-desc";
 export const NOTE_SORTS = ["updated-desc", "updated-asc", "created-desc", "title-asc"] as const;
 
@@ -43,6 +44,45 @@ function parseContent(value: string): Record<string, unknown> {
   } catch {
     return EMPTY_DOCUMENT;
   }
+}
+
+function searchableText(value: unknown): string {
+  const parts: string[] = [];
+
+  const visit = (node: unknown) => {
+    if (!node || typeof node !== "object") return;
+    const record = node as Record<string, unknown>;
+    if (typeof record.text === "string") parts.push(record.text);
+    if (Array.isArray(record.content)) record.content.forEach(visit);
+  };
+
+  visit(value);
+  return parts.join(" ").replace(/\s+/g, " ").trim();
+}
+
+function searchTerms(value: string) {
+  return value
+    .normalize("NFKC")
+    .slice(0, 512)
+    .match(/[\p{L}\p{N}_]+/gu)
+    ?.slice(0, 8)
+    .map((term) => term.slice(0, 64)) ?? [];
+}
+
+function ftsQuery(terms: string[]) {
+  return terms.map((term) => `"${term.replaceAll('"', '""')}"*`).join(" AND ");
+}
+
+function excerptFor(content: string, terms: string[]) {
+  const text = searchableText(parseContent(content));
+  if (!text) return "";
+
+  const normalized = text.toLocaleLowerCase("und");
+  const firstTerm = terms[0]?.toLocaleLowerCase("und") ?? "";
+  const foundAt = firstTerm ? normalized.indexOf(firstTerm) : -1;
+  const start = foundAt < 0 ? 0 : Math.max(0, foundAt - 48);
+  const end = Math.min(text.length, start + 156);
+  return `${start > 0 ? "…" : ""}${text.slice(start, end)}${end < text.length ? "…" : ""}`;
 }
 
 function noteFromRow(row: Record<string, unknown>): Note {
@@ -132,6 +172,47 @@ export class NotesRepository {
       ) STRICT;
 
       CREATE INDEX IF NOT EXISTS note_tags_tag_id_idx ON note_tags(tag_id);
+
+      CREATE VIRTUAL TABLE IF NOT EXISTS note_search USING fts5(
+        note_id UNINDEXED,
+        title,
+        content,
+        tokenize = 'unicode61 remove_diacritics 2'
+      );
+
+      CREATE TRIGGER IF NOT EXISTS note_search_after_insert
+      AFTER INSERT ON notes BEGIN
+        INSERT INTO note_search(note_id, title, content)
+        VALUES (
+          new.id,
+          new.title,
+          COALESCE((
+            SELECT group_concat(value, ' ')
+            FROM json_tree(new.content_json)
+            WHERE key = 'text' AND type = 'text'
+          ), '')
+        );
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS note_search_after_update
+      AFTER UPDATE OF title, content_json ON notes BEGIN
+        DELETE FROM note_search WHERE note_id = old.id;
+        INSERT INTO note_search(note_id, title, content)
+        VALUES (
+          new.id,
+          new.title,
+          COALESCE((
+            SELECT group_concat(value, ' ')
+            FROM json_tree(new.content_json)
+            WHERE key = 'text' AND type = 'text'
+          ), '')
+        );
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS note_search_after_delete
+      AFTER DELETE ON notes BEGIN
+        DELETE FROM note_search WHERE note_id = old.id;
+      END;
     `);
   }
 
@@ -232,6 +313,36 @@ export class NotesRepository {
       createdAt: String(row.created_at),
       updatedAt: String(row.updated_at),
       trashedAt: String(row.trashed_at),
+    }));
+  }
+
+  search(query: string): NoteSearchResult[] {
+    const terms = searchTerms(query);
+    if (terms.length === 0) return [];
+
+    const rows = this.database.prepare(`
+      SELECT
+        notes.id,
+        notes.title,
+        notes.is_pinned,
+        notes.created_at,
+        notes.updated_at,
+        notes.content_json
+      FROM note_search
+      INNER JOIN notes ON notes.id = note_search.note_id
+      LEFT JOIN note_trash ON note_trash.note_id = notes.id
+      WHERE note_search MATCH ? AND note_trash.note_id IS NULL
+      ORDER BY bm25(note_search), notes.updated_at DESC
+      LIMIT ?
+    `).all(ftsQuery(terms), SEARCH_RESULT_LIMIT) as Record<string, unknown>[];
+
+    return rows.map((row) => ({
+      id: String(row.id),
+      title: String(row.title),
+      isPinned: Boolean(row.is_pinned),
+      createdAt: String(row.created_at),
+      updatedAt: String(row.updated_at),
+      excerpt: excerptFor(String(row.content_json), terms),
     }));
   }
 

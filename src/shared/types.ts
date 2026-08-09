@@ -21,6 +21,10 @@ export type Note = NotePreview & {
   content: Record<string, unknown>;
 };
 
+export type NoteSearchResult = NotePreview & {
+  excerpt: string;
+};
+
 export type TrashedNotePreview = NotePreview & {
   trashedAt: string;
 };
@@ -60,6 +64,7 @@ export type ArchiveImportResult = {
 export type NotesApi = {
   list: (tagIds?: string[]) => Promise<NotePreview[]>;
   listTrash: () => Promise<TrashedNotePreview[]>;
+  search: (query: string) => Promise<NoteSearchResult[]>;
   get: (id: string) => Promise<Note | null>;
   create: () => Promise<Note>;
   save: (draft: NoteDraft) => Promise<Note | null>;

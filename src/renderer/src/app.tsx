@@ -6,6 +6,7 @@ import whNotesIcon from "@/assets/wh-notes-icon.png";
 import { ThemeMenu } from "@/components/theme-menu";
 import { LanguageMenu } from "@/components/language-menu";
 import { useI18n } from "@/components/locale-provider";
+import { resolveSaveStatus, type SaveStatus } from "@/lib/save-status";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -140,6 +141,12 @@ type ArchiveAction =
   | { mode: "export"; noteIds?: string[] }
   | { mode: "import" };
 
+type PendingSave = {
+  note: Note;
+  revision: number;
+  timer: ReturnType<typeof setTimeout> | null;
+};
+
 function ArchivePasswordDialog({ action, onClose, onImported }: {
   action: ArchiveAction | null;
   onClose: () => void;
@@ -250,13 +257,22 @@ export function App() {
   const [loading, setLoading] = useState(true);
   const [noteToDelete, setNoteToDelete] = useState<NotePreview | null>(null);
   const [archiveAction, setArchiveAction] = useState<ArchiveAction | null>(null);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const activeNoteRef = useRef<Note | null>(null);
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingSavesRef = useRef(new Map<string, PendingSave>());
+  const saveChainsRef = useRef(new Map<string, Promise<void>>());
+  const saveStatusesRef = useRef(new Map<string, SaveStatus>());
+
+  const setNoteSaveStatus = useCallback((noteId: string, nextStatus: SaveStatus) => {
+    saveStatusesRef.current.set(noteId, nextStatus);
+    if (activeNoteRef.current?.id === noteId) setSaveStatus(nextStatus);
+  }, []);
 
   const selectNote = useCallback(async (id: string) => {
     const note = await window.notes.get(id);
     activeNoteRef.current = note;
     setActiveNote(note);
+    setSaveStatus(note ? saveStatusesRef.current.get(note.id) ?? "saved" : "saved");
   }, []);
 
   const refreshNotes = useCallback(async () => {
@@ -276,32 +292,81 @@ export function App() {
     const note = await window.notes.create();
     activeNoteRef.current = note;
     setActiveNote(note);
+    setNoteSaveStatus(note.id, "saved");
     await refreshNotes();
-  }, [refreshNotes]);
+  }, [refreshNotes, setNoteSaveStatus]);
 
   useEffect(() => window.notes.onNewNote(() => void createNote()), [createNote]);
 
   useEffect(
     () => () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      for (const pending of pendingSavesRef.current.values()) {
+        if (pending.timer) clearTimeout(pending.timer);
+      }
     },
     [],
   );
 
-  const queueSave = useCallback((note: Note) => {
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(() => {
-      void window.notes.save(note).then((saved) => {
-        if (!saved) return;
-        setNotes((current) =>
-          [
-            ...current.filter((item) => item.id !== saved.id),
-            { id: saved.id, title: saved.title, isPinned: saved.isPinned, createdAt: saved.createdAt, updatedAt: saved.updatedAt },
-          ].toSorted((a, b) => Number(b.isPinned) - Number(a.isPinned) || b.updatedAt.localeCompare(a.updatedAt)),
-        );
+  const persistQueuedNote = useCallback(
+    (noteId: string, note: Note, revision: number) => {
+      const previous = saveChainsRef.current.get(noteId) ?? Promise.resolve();
+      const next = previous
+        .catch(() => undefined)
+        .then(async () => {
+          const pending = pendingSavesRef.current.get(noteId);
+          if (!pending || pending.revision !== revision) return;
+
+          setNoteSaveStatus(noteId, "saving");
+          let saved: Note | null = null;
+          try {
+            saved = await window.notes.save(note);
+          } catch {
+            // The status below communicates the failure without treating it as saved.
+          }
+
+          const latest = pendingSavesRef.current.get(noteId);
+          const nextStatus = latest
+            ? resolveSaveStatus(revision, latest.revision, Boolean(saved))
+            : null;
+          if (!nextStatus) return;
+          setNoteSaveStatus(noteId, nextStatus);
+          if (!saved) return;
+
+          pendingSavesRef.current.delete(noteId);
+          setNotes((current) =>
+            [
+              ...current.filter((item) => item.id !== saved.id),
+              { id: saved.id, title: saved.title, isPinned: saved.isPinned, createdAt: saved.createdAt, updatedAt: saved.updatedAt },
+            ].toSorted((a, b) => Number(b.isPinned) - Number(a.isPinned) || b.updatedAt.localeCompare(a.updatedAt)),
+          );
+        });
+
+      saveChainsRef.current.set(noteId, next);
+      void next.finally(() => {
+        if (saveChainsRef.current.get(noteId) === next) {
+          saveChainsRef.current.delete(noteId);
+        }
       });
+      return next;
+    },
+    [setNoteSaveStatus],
+  );
+
+  const queueSave = useCallback((note: Note) => {
+    const previous = pendingSavesRef.current.get(note.id);
+    if (previous?.timer) clearTimeout(previous.timer);
+
+    const revision = (previous?.revision ?? 0) + 1;
+    const pending: PendingSave = { note, revision, timer: null };
+    pending.timer = setTimeout(() => {
+      const latest = pendingSavesRef.current.get(note.id);
+      if (!latest || latest.revision !== revision) return;
+      latest.timer = null;
+      void persistQueuedNote(note.id, note, revision);
     }, 450);
-  }, []);
+    pendingSavesRef.current.set(note.id, pending);
+    setNoteSaveStatus(note.id, "unsaved");
+  }, [persistQueuedNote, setNoteSaveStatus]);
 
   const updateNote = useCallback(
     (patch: Partial<Pick<Note, "title" | "content">>) => {
@@ -315,25 +380,34 @@ export function App() {
     [queueSave],
   );
 
-  const flushActiveNote = useCallback(async () => {
-    if (saveTimerRef.current) {
-      clearTimeout(saveTimerRef.current);
-      saveTimerRef.current = null;
+  const flushNote = useCallback(async (noteId: string) => {
+    while (true) {
+      const pending = pendingSavesRef.current.get(noteId);
+      if (!pending) return;
+      if (pending.timer) clearTimeout(pending.timer);
+      pending.timer = null;
+
+      const revision = pending.revision;
+      await persistQueuedNote(noteId, pending.note, revision);
+      const latest = pendingSavesRef.current.get(noteId);
+      if (!latest || latest.revision === revision) return;
     }
+  }, [persistQueuedNote]);
+
+  const flushActiveNote = useCallback(async () => {
     const current = activeNoteRef.current;
-    if (!current) return;
-    const saved = await window.notes.save(current);
-    if (saved) await refreshNotes();
-  }, [refreshNotes]);
+    if (current) await flushNote(current.id);
+  }, [flushNote]);
 
   const deleteNote = useCallback(async () => {
     const target = noteToDelete;
     if (!target) return;
 
-    if (activeNoteRef.current?.id === target.id && saveTimerRef.current) {
-      clearTimeout(saveTimerRef.current);
-      saveTimerRef.current = null;
-    }
+    const pending = pendingSavesRef.current.get(target.id);
+    if (pending?.timer) clearTimeout(pending.timer);
+    pendingSavesRef.current.delete(target.id);
+    saveStatusesRef.current.delete(target.id);
+    if (activeNoteRef.current?.id === target.id) setSaveStatus("saved");
 
     await window.notes.remove(target.id);
     const remaining = await refreshNotes();
@@ -383,6 +457,7 @@ export function App() {
           <NoteEditor
             key={`${activeNote.id}-${text.startWriting}`}
             note={activeNote}
+            saveStatus={saveStatus}
             onTitleChange={(title) => updateNote({ title })}
             onContentChange={(content) => updateNote({ content })}
           />

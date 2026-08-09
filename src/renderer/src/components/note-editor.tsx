@@ -35,6 +35,7 @@ import {
   MAX_EDITOR_IMAGE_BYTES,
   SUPPORTED_IMAGE_MIME_TYPES,
 } from "@/lib/editor-utils";
+import type { SaveStatus } from "@/lib/save-status";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -45,6 +46,7 @@ const lowlight = createLowlight(common);
 
 type NoteEditorProps = {
   note: Note;
+  saveStatus: SaveStatus;
   onTitleChange: (title: string) => void;
   onContentChange: (content: Record<string, unknown>) => void;
 };
@@ -216,7 +218,7 @@ function insertImage(editor: Editor, image: LocalImage, position?: number, alt =
   else chain.insertContent(contentWithParagraph).run();
 }
 
-export function NoteEditor({ note, onTitleChange, onContentChange }: NoteEditorProps) {
+export function NoteEditor({ note, saveStatus, onTitleChange, onContentChange }: NoteEditorProps) {
   const { text } = useI18n();
   const onContentChangeRef = useRef(onContentChange);
   const importImageFilesRef = useRef<(currentEditor: Editor, files: File[], position?: number) => Promise<void>>(async () => undefined);
@@ -327,6 +329,15 @@ export function NoteEditor({ note, onTitleChange, onContentChange }: NoteEditorP
     }
   }, [editor, showMediaMessage, text]);
 
+  const saveStatusLabel =
+    saveStatus === "unsaved"
+      ? text.unsaved
+      : saveStatus === "saving"
+      ? text.saving
+      : saveStatus === "error"
+        ? text.saveFailed
+        : text.saved;
+
   return (
     <section className="editor-workspace">
       <header className="editor-heading">
@@ -337,7 +348,13 @@ export function NoteEditor({ note, onTitleChange, onContentChange }: NoteEditorP
           aria-label={text.noteTitle}
           placeholder={text.untitled}
         />
-        <span className="editor-status"><span className="status-dot" />{mediaMessage ?? text.saved}</span>
+        <div className="editor-statuses">
+          <span className="editor-status" data-state={saveStatus} aria-live="polite">
+            <span className="status-dot" />
+            {saveStatusLabel}
+          </span>
+          {mediaMessage && <span className="editor-media-status" role="status">{mediaMessage}</span>}
+        </div>
       </header>
       <Tiptap editor={editor}>
         <EditorToolbar onInsertImage={pickImage} />

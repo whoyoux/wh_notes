@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
-import type { ArchivedNotePreview, Locale, Note, NoteDraft, NotePreview, NoteSort, Theme, TrashedNotePreview } from "../shared/types";
+import type { ArchivedNotePreview, Locale, Note, NoteDraft, NotePreview, NoteSort, Tag, Theme, TrashedNotePreview } from "../shared/types";
 
 export const TRASH_RETENTION_DAYS = 30;
 const TRASH_RETENTION_MS = TRASH_RETENTION_DAYS * 24 * 60 * 60 * 1000;
@@ -60,6 +60,26 @@ export function isValidNoteId(value: unknown): value is string {
   return typeof value === "string" && /^[a-z0-9-]{36}$/i.test(value);
 }
 
+function normalizedTagName(value: string) {
+  return value.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("und");
+}
+
+function preparedTagNames(names: string[]) {
+  if (!Array.isArray(names) || names.length > 12) throw new Error("Invalid tags.");
+  const entries = names.map((name) => {
+    if (typeof name !== "string") throw new Error("Invalid tags.");
+    const displayName = name.normalize("NFKC").trim().replace(/\s+/g, " ");
+    const normalizedName = normalizedTagName(name);
+    if (!displayName || displayName.length > 50 || !normalizedName) throw new Error("Invalid tags.");
+    return { displayName, normalizedName };
+  });
+  const unique = new Map<string, { displayName: string; normalizedName: string }>();
+  for (const entry of entries) {
+    if (!unique.has(entry.normalizedName)) unique.set(entry.normalizedName, entry);
+  }
+  return [...unique.values()];
+}
+
 export class NotesRepository {
   private readonly createId: () => string;
   private readonly now: () => Date;
@@ -104,6 +124,21 @@ export class NotesRepository {
       ) STRICT;
 
       CREATE INDEX IF NOT EXISTS note_archive_archived_at_idx ON note_archive(archived_at);
+
+      CREATE TABLE IF NOT EXISTS tags (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        normalized_name TEXT NOT NULL UNIQUE,
+        created_at TEXT NOT NULL
+      ) STRICT;
+
+      CREATE TABLE IF NOT EXISTS note_tags (
+        note_id TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+        tag_id TEXT NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+        PRIMARY KEY (note_id, tag_id)
+      ) STRICT;
+
+      CREATE INDEX IF NOT EXISTS note_tags_tag_id_idx ON note_tags(tag_id);
     `);
   }
 
@@ -166,17 +201,18 @@ export class NotesRepository {
     return note;
   }
 
-  list(): NotePreview[] {
+  list(tagIds: string[] = []): NotePreview[] {
+    const tagFilter = this.tagFilter(tagIds);
     const rows = this.database
       .prepare(`
         SELECT notes.id, notes.title, notes.is_pinned, notes.created_at, notes.updated_at
         FROM notes
         LEFT JOIN note_trash ON note_trash.note_id = notes.id
         LEFT JOIN note_archive ON note_archive.note_id = notes.id
-        WHERE note_trash.note_id IS NULL AND note_archive.note_id IS NULL
+        WHERE note_trash.note_id IS NULL AND note_archive.note_id IS NULL ${tagFilter.sql}
         ORDER BY ${orderBy(this.getSort())}
       `)
-      .all() as Record<string, unknown>[];
+      .all(...tagFilter.params) as Record<string, unknown>[];
 
     return rows.map((row) => ({
       id: String(row.id),
@@ -187,17 +223,18 @@ export class NotesRepository {
     }));
   }
 
-  listArchived(): ArchivedNotePreview[] {
+  listArchived(tagIds: string[] = []): ArchivedNotePreview[] {
+    const tagFilter = this.tagFilter(tagIds);
     const rows = this.database
       .prepare(`
         SELECT notes.id, notes.title, notes.is_pinned, notes.created_at, notes.updated_at, note_archive.archived_at
         FROM note_archive
         INNER JOIN notes ON notes.id = note_archive.note_id
         LEFT JOIN note_trash ON note_trash.note_id = notes.id
-        WHERE note_trash.note_id IS NULL
+        WHERE note_trash.note_id IS NULL ${tagFilter.sql}
         ORDER BY ${orderBy(this.getSort())}
       `)
-      .all() as Array<Record<string, unknown>>;
+      .all(...tagFilter.params) as Array<Record<string, unknown>>;
 
     return rows.map((row) => ({
       id: String(row.id),
@@ -234,6 +271,57 @@ export class NotesRepository {
       .prepare("SELECT * FROM notes WHERE id = ?")
       .get(id) as Record<string, unknown> | undefined;
     return row ? noteFromRow(row) : null;
+  }
+
+  listTags(): Tag[] {
+    return (this.database.prepare("SELECT id, name FROM tags ORDER BY name COLLATE NOCASE ASC, id ASC").all() as Array<Record<string, unknown>>)
+      .map((row) => ({ id: String(row.id), name: String(row.name) }));
+  }
+
+  getTags(noteId: string): Tag[] {
+    if (!isValidNoteId(noteId)) return [];
+    return (this.database.prepare(`
+      SELECT tags.id, tags.name FROM note_tags
+      INNER JOIN tags ON tags.id = note_tags.tag_id
+      WHERE note_tags.note_id = ?
+      ORDER BY tags.name COLLATE NOCASE ASC, tags.id ASC
+    `).all(noteId) as Array<Record<string, unknown>>).map((row) => ({ id: String(row.id), name: String(row.name) }));
+  }
+
+  setTags(noteId: string, names: string[]): Tag[] {
+    if (!isValidNoteId(noteId)) throw new Error("Invalid note.");
+    const entries = preparedTagNames(names);
+    const isTrashed = this.database.prepare("SELECT 1 FROM note_trash WHERE note_id = ?").get(noteId);
+    if (isTrashed) throw new Error("Cannot tag a trashed note.");
+
+    this.database.exec("BEGIN");
+    try {
+      this.database.prepare("DELETE FROM note_tags WHERE note_id = ?").run(noteId);
+      const addTag = this.database.prepare("INSERT OR IGNORE INTO tags (id, name, normalized_name, created_at) VALUES (?, ?, ?, ?)");
+      const findTag = this.database.prepare("SELECT id FROM tags WHERE normalized_name = ?");
+      const addRelation = this.database.prepare("INSERT INTO note_tags (note_id, tag_id) VALUES (?, ?)");
+      for (const entry of entries) {
+        addTag.run(randomUUID(), entry.displayName, entry.normalizedName, this.now().toISOString());
+        const tag = findTag.get(entry.normalizedName) as { id: string };
+        addRelation.run(noteId, tag.id);
+      }
+      this.removeUnusedTags();
+      this.database.exec("COMMIT");
+    } catch (error) {
+      this.database.exec("ROLLBACK");
+      throw error;
+    }
+    return this.getTags(noteId);
+  }
+
+  private tagFilter(tagIds: string[]) {
+    if (!Array.isArray(tagIds) || tagIds.length === 0) return { sql: "", params: [] as Array<string | number> };
+    if (!tagIds.every(isValidNoteId)) throw new Error("Invalid tag filter.");
+    const ids = [...new Set(tagIds)];
+    return {
+      sql: `AND notes.id IN (SELECT note_id FROM note_tags WHERE tag_id IN (${ids.map(() => "?").join(", ")}) GROUP BY note_id HAVING COUNT(DISTINCT tag_id) = ?)`,
+      params: [...ids, ids.length],
+    };
   }
 
   forArchive(noteIds?: unknown): Note[] {
@@ -326,6 +414,7 @@ export class NotesRepository {
       DELETE FROM notes
       WHERE id = ? AND EXISTS (SELECT 1 FROM note_trash WHERE note_id = notes.id)
     `).run(id);
+    this.removeUnusedTags();
   }
 
   purgeExpiredTrash(now = this.now()) {
@@ -334,5 +423,10 @@ export class NotesRepository {
       DELETE FROM notes
       WHERE id IN (SELECT note_id FROM note_trash WHERE trashed_at <= ?)
     `).run(cutoff);
+    this.removeUnusedTags();
+  }
+
+  private removeUnusedTags() {
+    this.database.prepare("DELETE FROM tags WHERE NOT EXISTS (SELECT 1 FROM note_tags WHERE note_tags.tag_id = tags.id)").run();
   }
 }

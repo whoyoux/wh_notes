@@ -3,8 +3,8 @@ import { isAppCommand } from "./shared/app-commands";
 import type { ArchiveExportOptions, ImportImagePayload, Locale, NoteDraft, NotesApi, NoteSort, Theme } from "./shared/types";
 
 const notesApi: NotesApi = {
-  list: () => ipcRenderer.invoke("notes:list"),
-  listArchived: () => ipcRenderer.invoke("notes:list-archived"),
+  list: (tagIds) => ipcRenderer.invoke("notes:list", tagIds),
+  listArchived: (tagIds) => ipcRenderer.invoke("notes:list-archived", tagIds),
   listTrash: () => ipcRenderer.invoke("notes:list-trash"),
   get: (id) => ipcRenderer.invoke("notes:get", id),
   create: () => ipcRenderer.invoke("notes:create"),
@@ -17,6 +17,9 @@ const notesApi: NotesApi = {
   permanentlyDelete: (id) => ipcRenderer.invoke("notes:permanently-delete", id),
   getSort: () => ipcRenderer.invoke("preferences:get-note-sort"),
   setSort: (sort: NoteSort) => ipcRenderer.invoke("preferences:set-note-sort", sort),
+  listTags: () => ipcRenderer.invoke("tags:list"),
+  getTags: (noteId) => ipcRenderer.invoke("tags:get-for-note", noteId),
+  setTags: (noteId, names) => ipcRenderer.invoke("tags:set-for-note", noteId, names),
   getTheme: () => ipcRenderer.invoke("preferences:get-theme"),
   setTheme: (theme: Theme) => ipcRenderer.invoke("preferences:set-theme", theme),
   getLocale: () => ipcRenderer.invoke("preferences:get-locale"),

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
-import { Archive, ArrowDownUp, Download, FileText, MoreHorizontal, NotebookPen, Pin, Plus, Trash2, Upload } from "lucide-react";
+import { Archive, ArrowDownUp, Download, FileText, MoreHorizontal, NotebookPen, Pin, Plus, Tag as TagIcon, Tags, Trash2, Upload, X } from "lucide-react";
 import { useTheme } from "next-themes";
 import { NoteEditor } from "@/components/note-editor";
 import whNotesIcon from "@/assets/wh-notes-icon.png";
@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
@@ -42,7 +43,7 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar";
 import type { AppCommand } from "../../shared/app-commands";
-import type { ArchivedNotePreview, Note, NotePreview, NoteSort, TrashedNotePreview } from "../../shared/types";
+import type { ArchivedNotePreview, Note, NotePreview, NoteSort, Tag, TrashedNotePreview } from "../../shared/types";
 
 type NotesSidebarProps = {
   notes: NotePreview[];
@@ -50,9 +51,12 @@ type NotesSidebarProps = {
   trashNotes: TrashedNotePreview[];
   activeId?: string;
   activeView: "notes" | "archive" | "trash";
+  tags: Tag[];
+  selectedTagIds: string[];
   labels: ReturnType<typeof useI18n>["text"];
   onCreate: () => void;
   onSetSort: (sort: NoteSort) => void;
+  onToggleTagFilter: (tagId: string) => void;
   onShowNotes: () => void;
   onShowArchive: () => void;
   onShowTrash: () => void;
@@ -68,7 +72,7 @@ type NotesSidebarProps = {
   onImport: () => void;
 };
 
-function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, labels, onCreate, onSetSort, onShowNotes, onShowArchive, onShowTrash, onSelect, onRequestMoveToTrash, onSetPinned, onArchiveNote, onUnarchiveNote, onRestoreNote, onRequestPermanentDelete, onExportNote, onExportAll, onImport }: NotesSidebarProps) {
+function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, tags, selectedTagIds, labels, onCreate, onSetSort, onToggleTagFilter, onShowNotes, onShowArchive, onShowTrash, onSelect, onRequestMoveToTrash, onSetPinned, onArchiveNote, onUnarchiveNote, onRestoreNote, onRequestPermanentDelete, onExportNote, onExportAll, onImport }: NotesSidebarProps) {
   return (
     <Sidebar>
       <SidebarHeader>
@@ -86,6 +90,20 @@ function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, 
               <DropdownMenuItem onSelect={() => onSetSort("updated-asc")}>{labels.sortOldestEdited}</DropdownMenuItem>
               <DropdownMenuItem onSelect={() => onSetSort("created-desc")}>{labels.sortRecentlyCreated}</DropdownMenuItem>
               <DropdownMenuItem onSelect={() => onSetSort("title-asc")}>{labels.sortTitle}</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button type="button" variant="ghost" size="icon-sm" aria-label={labels.filterTags}>
+                <TagIcon className="size-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {tags.length === 0 ? <DropdownMenuItem disabled>{labels.noTags}</DropdownMenuItem> : tags.map((tag) => (
+                <DropdownMenuCheckboxItem key={tag.id} checked={selectedTagIds.includes(tag.id)} onCheckedChange={() => onToggleTagFilter(tag.id)}>
+                  {tag.name}
+                </DropdownMenuCheckboxItem>
+              ))}
             </DropdownMenuContent>
           </DropdownMenu>
           <DropdownMenu>
@@ -351,11 +369,79 @@ function ThemeInitializer() {
   return null;
 }
 
+function TagEditorDialog({ note, tags, open, onOpenChange, onSave }: {
+  note: Note | null;
+  tags: Tag[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (names: string[]) => Promise<void>;
+}) {
+  const { text } = useI18n();
+  const [draft, setDraft] = useState<string[]>([]);
+  const [value, setValue] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setDraft(tags.map((tag) => tag.name));
+      setValue("");
+    }
+  }, [open, tags]);
+
+  const addTag = () => {
+    const next = value.trim();
+    if (!next || draft.some((tag) => tag.localeCompare(next, undefined, { sensitivity: "accent" }) === 0)) return;
+    setDraft((current) => [...current, next]);
+    setValue("");
+  };
+
+  const save = async () => {
+    if (!note) return;
+    setSaving(true);
+    try {
+      await onSave(draft);
+      onOpenChange(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>{text.manageTags}</DialogTitle>
+          <DialogDescription>{note?.title || text.untitled}</DialogDescription>
+        </DialogHeader>
+        <form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); addTag(); }}>
+          <Input value={value} onChange={(event) => setValue(event.target.value)} placeholder={text.addTag} maxLength={50} />
+          <Button type="submit" variant="outline" size="sm">{text.addTag}</Button>
+        </form>
+        <div className="flex flex-wrap gap-1.5">
+          {draft.map((tag) => (
+            <Button key={tag} type="button" variant="secondary" size="xs" onClick={() => setDraft((current) => current.filter((item) => item !== tag))}>
+              {tag}<X className="size-3" />
+            </Button>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>{text.cancel}</Button>
+          <Button type="button" onClick={() => void save()} disabled={saving}>{text.saveTags}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function App() {
   const { text } = useI18n();
   const [notes, setNotes] = useState<NotePreview[]>([]);
   const [archivedNotes, setArchivedNotes] = useState<ArchivedNotePreview[]>([]);
   const [trashNotes, setTrashNotes] = useState<TrashedNotePreview[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [activeTags, setActiveTags] = useState<Tag[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [tagEditorOpen, setTagEditorOpen] = useState(false);
   const [activeView, setActiveView] = useState<"notes" | "archive" | "trash">("notes");
   const [activeNote, setActiveNote] = useState<Note | null>(null);
   const [loading, setLoading] = useState(true);
@@ -374,28 +460,35 @@ export function App() {
   }, []);
 
   const selectNote = useCallback(async (id: string) => {
-    const note = await window.notes.get(id);
+    const [note, noteTags] = await Promise.all([window.notes.get(id), window.notes.getTags(id)]);
     activeNoteRef.current = note;
     setActiveNote(note);
+    setActiveTags(noteTags);
     setSaveStatus(note ? saveStatusesRef.current.get(note.id) ?? "saved" : "saved");
   }, []);
 
   const refreshNotes = useCallback(async () => {
-    const previews = await window.notes.list();
+    const previews = await window.notes.list(selectedTagIds);
     setNotes(previews);
     return previews;
-  }, []);
+  }, [selectedTagIds]);
 
   const refreshArchived = useCallback(async () => {
-    const previews = await window.notes.listArchived();
+    const previews = await window.notes.listArchived(selectedTagIds);
     setArchivedNotes(previews);
     return previews;
-  }, []);
+  }, [selectedTagIds]);
 
   const refreshTrash = useCallback(async () => {
     const previews = await window.notes.listTrash();
     setTrashNotes(previews);
     return previews;
+  }, []);
+
+  const refreshTags = useCallback(async () => {
+    const availableTags = await window.notes.listTags();
+    setTags(availableTags);
+    return availableTags;
   }, []);
 
   const setNoteSort = useCallback(async (sort: NoteSort) => {
@@ -404,11 +497,11 @@ export function App() {
   }, [refreshArchived, refreshNotes]);
 
   useEffect(() => {
-    void Promise.all([refreshNotes(), refreshArchived(), refreshTrash()]).then(([previews]) => {
+    void Promise.all([refreshNotes(), refreshArchived(), refreshTrash(), refreshTags()]).then(([previews]) => {
       if (previews[0]) void selectNote(previews[0].id);
       setLoading(false);
     });
-  }, [refreshArchived, refreshNotes, refreshTrash, selectNote]);
+  }, [refreshArchived, refreshNotes, refreshTags, refreshTrash, selectNote]);
 
   const createNote = useCallback(async () => {
     const note = await window.notes.create();
@@ -422,8 +515,23 @@ export function App() {
   const clearActiveNote = useCallback(() => {
     activeNoteRef.current = null;
     setActiveNote(null);
+    setActiveTags([]);
     setSaveStatus("saved");
   }, []);
+
+  const toggleTagFilter = useCallback((tagId: string) => {
+    setSelectedTagIds((current) => current.includes(tagId)
+      ? current.filter((id) => id !== tagId)
+      : [...current, tagId]);
+  }, []);
+
+  const saveTags = useCallback(async (names: string[]) => {
+    const note = activeNoteRef.current;
+    if (!note) return;
+    const nextTags = await window.notes.setTags(note.id, names);
+    setActiveTags(nextTags);
+    await Promise.all([refreshTags(), refreshNotes(), refreshArchived()]);
+  }, [refreshArchived, refreshNotes, refreshTags]);
 
   const showNotes = useCallback(async () => {
     setActiveView("notes");
@@ -667,11 +775,14 @@ export function App() {
         notes={notes}
         archivedNotes={archivedNotes}
         trashNotes={trashNotes}
+        tags={tags}
+        selectedTagIds={selectedTagIds}
         activeId={activeNote?.id}
         activeView={activeView}
         labels={text}
         onCreate={() => void createNote()}
         onSetSort={(sort) => void setNoteSort(sort)}
+        onToggleTagFilter={toggleTagFilter}
         onShowNotes={() => void showNotes()}
         onShowArchive={() => void showArchive()}
         onShowTrash={() => void showTrash()}
@@ -693,6 +804,8 @@ export function App() {
             note={activeNote}
             saveStatus={saveStatus}
             readOnly={activeView === "trash"}
+            tags={activeTags}
+            onManageTags={() => setTagEditorOpen(true)}
             onTitleChange={(title) => updateNote({ title })}
             onContentChange={(content) => updateNote({ content })}
           />
@@ -740,6 +853,7 @@ export function App() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <TagEditorDialog note={activeNote} tags={activeTags} open={tagEditorOpen} onOpenChange={setTagEditorOpen} onSave={saveTags} />
       <ArchivePasswordDialog action={archiveAction} onClose={() => setArchiveAction(null)} onImported={afterImport} />
     </SidebarProvider>
   );

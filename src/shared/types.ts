@@ -1,3 +1,5 @@
+import type { AppCommand } from "./app-commands";
+
 export type Theme = "light" | "dark" | "system";
 export type Locale = "en" | "pl";
 
@@ -62,5 +64,5 @@ export type NotesApi = {
   getImageDetails: (id: string) => Promise<LocalImageDetails | null>;
   exportArchive: (options: ArchiveExportOptions) => Promise<boolean>;
   importArchive: (password: string) => Promise<ArchiveImportResult | null>;
-  onNewNote: (callback: () => void) => () => void;
+  onAppCommand: (callback: (command: AppCommand) => void) => () => void;
 };

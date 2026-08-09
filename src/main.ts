@@ -6,6 +6,7 @@ import { createHash, randomUUID } from "node:crypto";
 import path from "node:path";
 import type { IpcMainInvokeEvent, WebContents } from "electron";
 import type { ArchiveExportOptions, ArchiveImportResult, ImportImagePayload, LocalImage, LocalImageDetails, Locale, Note, NoteDraft, NotePreview, Theme } from "./shared/types";
+import { APP_COMMANDS, type AppCommand } from "./shared/app-commands";
 import { decryptArchive, encryptArchive, type ArchiveDocument } from "./main/archive-crypto";
 import { IMAGE_FORMATS, MAX_IMAGE_BYTES, validateImageBytes, type ImageMimeType } from "./main/media-validation";
 import { backgroundColorForTheme } from "./main/window-theme";
@@ -580,6 +581,7 @@ function createWindow() {
 
 function createApplicationMenu(locale: Locale) {
   const pl = locale === "pl";
+  const sendAppCommand = (command: AppCommand) => mainWindow?.webContents.send("app-command", command);
   Menu.setApplicationMenu(
     Menu.buildFromTemplate([
       {
@@ -587,8 +589,18 @@ function createApplicationMenu(locale: Locale) {
         submenu: [
           {
             label: pl ? "Nowa notatka" : "New note",
-            accelerator: "CmdOrCtrl+N",
-            click: () => mainWindow?.webContents.send("command:new-note"),
+            accelerator: APP_COMMANDS["new-note"].accelerator,
+            click: () => sendAppCommand("new-note"),
+          },
+          {
+            label: pl ? "Zapisz teraz" : "Save now",
+            accelerator: APP_COMMANDS["save-note"].accelerator,
+            click: () => sendAppCommand("save-note"),
+          },
+          {
+            label: pl ? "Eksportuj bieżącą notatkę" : "Export current note",
+            accelerator: APP_COMMANDS["export-note"].accelerator,
+            click: () => sendAppCommand("export-note"),
           },
           { type: "separator" },
           { role: "quit", label: pl ? "Zakończ" : "Quit" },

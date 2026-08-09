@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
+import { isAppCommand } from "./shared/app-commands";
 import type { ArchiveExportOptions, ImportImagePayload, Locale, NoteDraft, NotesApi, Theme } from "./shared/types";
 
 const notesApi: NotesApi = {
@@ -18,10 +19,12 @@ const notesApi: NotesApi = {
   getImageDetails: (id) => ipcRenderer.invoke("media:get-image-details", id),
   exportArchive: (options: ArchiveExportOptions) => ipcRenderer.invoke("archive:export", options),
   importArchive: (password) => ipcRenderer.invoke("archive:import", password),
-  onNewNote: (callback) => {
-    const listener = () => callback();
-    ipcRenderer.on("command:new-note", listener);
-    return () => ipcRenderer.removeListener("command:new-note", listener);
+  onAppCommand: (callback) => {
+    const listener = (_event: Electron.IpcRendererEvent, command: unknown) => {
+      if (isAppCommand(command)) callback(command);
+    };
+    ipcRenderer.on("app-command", listener);
+    return () => ipcRenderer.removeListener("app-command", listener);
   },
 };
 

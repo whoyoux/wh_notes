@@ -60,10 +60,11 @@ const config: ForgeConfig = {
       exe: "wh_notes.exe",
       features: { autoLaunch: false, autoUpdate: false },
       icon: iconPath,
-      // The upstream generator assigns a file as every component's key path.
-      // WiX's ICE38 validator only accepts an HKCU registry key in per-user
-      // folders; the generated package remains valid for our non-advertised app.
-      lightSwitches: ["-sice:ICE38"],
+      // The upstream generator assigns a file as every component's key path and
+      // cleans the app root through its own uninstall component. Those generated
+      // components trigger ICE38 and ICE64 in a per-user folder even though this
+      // direct-launch application has no advertised features.
+      lightSwitches: ["-sice:ICE38", "-sice:ICE64"],
       manufacturer: "whoyoux",
       name: "wh_notes",
       programFilesFolderName: "wh_notes",

@@ -84,7 +84,7 @@ function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, 
   return (
     <Sidebar>
       <SidebarHeader>
-        <SidebarMenu>
+        <SidebarMenu className="gap-1">
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -171,7 +171,7 @@ function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, 
         <SidebarGroup>
           <SidebarGroupLabel>{activeView === "notes" ? labels.notes : activeView === "archive" ? labels.archive : labels.trash}</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="gap-1">
               {activeView === "notes" ? notes.map((note) => (
                 <SidebarMenuItem key={note.id}>
                   <SidebarMenuButton size="sm" isActive={note.id === activeId} onClick={() => onSelect(note.id)}>
@@ -185,7 +185,7 @@ function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, 
                         <MoreHorizontal />
                       </SidebarMenuAction>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent side="right" align="start" className={compactDropdownMenuClassName}>
+                    <DropdownMenuContent side="right" align="start" className={`${compactDropdownMenuClassName} min-w-44`}>
                       <DropdownMenuGroup>
                         <DropdownMenuItem onSelect={() => onSetPinned(note.id, !note.isPinned)}>
                           <Pin />
@@ -222,7 +222,7 @@ function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, 
                         <MoreHorizontal />
                       </SidebarMenuAction>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent side="right" align="start" className={compactDropdownMenuClassName}>
+                    <DropdownMenuContent side="right" align="start" className={`${compactDropdownMenuClassName} min-w-44`}>
                       <DropdownMenuGroup>
                         <DropdownMenuItem onSelect={() => onUnarchiveNote(note.id)}>
                           <Archive />
@@ -255,7 +255,7 @@ function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, 
                         <MoreHorizontal />
                       </SidebarMenuAction>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent side="right" align="start" className={compactDropdownMenuClassName}>
+                    <DropdownMenuContent side="right" align="start" className={`${compactDropdownMenuClassName} min-w-44`}>
                       <DropdownMenuGroup>
                         <DropdownMenuItem onSelect={() => onRestoreNote(note.id)}>
                           <Upload />

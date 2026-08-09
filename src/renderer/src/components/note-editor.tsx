@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Editor } from "@tiptap/core";
 import FileHandler from "@tiptap/extension-file-handler";
 import Image from "@tiptap/extension-image";
+import { TaskItem, TaskList } from "@tiptap/extension-list";
 import Placeholder from "@tiptap/extension-placeholder";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import { NodeViewWrapper, ReactNodeViewRenderer, Tiptap, useEditor, useTiptap, useTiptapState, type ReactNodeViewProps } from "@tiptap/react";
@@ -18,6 +19,7 @@ import {
   Info,
   Italic,
   List,
+  ListChecks,
   ListOrdered,
   MoreHorizontal,
   Quote,
@@ -186,6 +188,7 @@ function EditorToolbar({ onInsertImage }: { onInsertImage: () => void }) {
       isOrderedList: current.isActive("orderedList"),
       isQuote: current.isActive("blockquote"),
       isStrike: current.isActive("strike"),
+      isTaskList: current.isActive("taskList"),
     };
   });
 
@@ -206,6 +209,7 @@ function EditorToolbar({ onInsertImage }: { onInsertImage: () => void }) {
         <ToolbarDivider />
         <ToolbarButton label={text.bulletList} icon={List} active={state.isBulletList} onPress={() => editor.chain().focus().toggleBulletList().run()} />
         <ToolbarButton label={text.orderedList} icon={ListOrdered} active={state.isOrderedList} onPress={() => editor.chain().focus().toggleOrderedList().run()} />
+        <ToolbarButton label={text.taskList} icon={ListChecks} active={state.isTaskList} onPress={() => editor.chain().focus().toggleTaskList().run()} />
         <ToolbarButton label={text.quote} icon={Quote} active={state.isQuote} onPress={() => editor.chain().focus().toggleBlockquote().run()} />
         <ToolbarButton label={text.codeBlock} icon={Code2} active={state.isCodeBlock} onPress={() => editor.chain().focus().toggleCodeBlock().run()} />
         <ToolbarDivider />
@@ -283,6 +287,13 @@ export function NoteEditor({ note, saveStatus, readOnly = false, tags, onManageT
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ codeBlock: false }),
+      TaskList,
+      TaskItem.configure({
+        nested: true,
+        a11y: {
+          checkboxLabel: (_node, checked) => (checked ? text.taskCompleted : text.taskNotCompleted),
+        },
+      }),
       Placeholder.configure({ placeholder: text.startWriting }),
       CodeBlockLowlight.configure({
         lowlight,

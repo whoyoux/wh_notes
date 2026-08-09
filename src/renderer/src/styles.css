@@ -170,6 +170,16 @@ html, body, #root { height: 100%; }
 .prose-editor ol ol { list-style-type: lower-alpha; }
 .prose-editor ol ol ol { list-style-type: lower-roman; }
 .prose-editor li { padding-left: 0.18rem; }
+.prose-editor ul[data-type="taskList"] { margin: 0.9rem 0 1.1rem; padding: 0; list-style: none; }
+.prose-editor ul[data-type="taskList"] li[data-type="taskItem"] { display: flex; align-items: flex-start; gap: 0.5rem; padding-left: 0; }
+.prose-editor ul[data-type="taskList"] li[data-type="taskItem"] + li[data-type="taskItem"] { margin-top: 0.2rem; }
+.prose-editor ul[data-type="taskList"] li[data-type="taskItem"] > label { display: flex; flex: 0 0 auto; align-items: center; margin-top: 0.48rem; user-select: none; }
+.prose-editor ul[data-type="taskList"] li[data-type="taskItem"] > label input[type="checkbox"] { width: 0.875rem; height: 0.875rem; margin: 0; cursor: pointer; accent-color: var(--foreground); }
+.prose-editor ul[data-type="taskList"] li[data-type="taskItem"] > label span { display: none; }
+.prose-editor ul[data-type="taskList"] li[data-type="taskItem"] > div { min-width: 0; flex: 1 1 auto; }
+.prose-editor ul[data-type="taskList"] li[data-type="taskItem"] > div > p { margin: 0; }
+.prose-editor ul[data-type="taskList"] li[data-type="taskItem"][data-checked="true"] > div > p { color: var(--muted-foreground); text-decoration: line-through; }
+.prose-editor ul[data-type="taskList"] ul[data-type="taskList"] { margin: 0.2rem 0 0; padding-left: 1.5rem; }
 .prose-editor blockquote { margin: 1.25rem 0; border-left: 2px solid var(--foreground); padding-left: 1rem; color: var(--muted-foreground); }
 .note-image-node { position: relative; display: block; width: fit-content; max-width: 100%; margin: 1.35rem 0; }
 .prose-editor img.note-image { display: block; max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 8px; }

@@ -7,6 +7,7 @@ import { ThemeMenu } from "@/components/theme-menu";
 import { LanguageMenu } from "@/components/language-menu";
 import { CommandPalette, type CommandPaletteAction } from "@/components/command-palette";
 import { useI18n } from "@/components/locale-provider";
+import { VersionHistoryDialog } from "@/components/version-history-dialog";
 import { resolveSaveStatus, type SaveStatus } from "@/lib/save-status";
 import {
   AlertDialog,
@@ -440,6 +441,7 @@ export function App() {
   const [activeTags, setActiveTags] = useState<Tag[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [tagEditorOpen, setTagEditorOpen] = useState(false);
+  const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [activeView, setActiveView] = useState<"notes" | "trash">("notes");
   const [activeNote, setActiveNote] = useState<Note | null>(null);
@@ -638,6 +640,26 @@ export function App() {
     if (current) await flushNote(current.id);
   }, [flushNote]);
 
+  const openVersionHistory = useCallback(async () => {
+    await flushActiveNote();
+    if (activeNoteRef.current && activeView !== "trash") setVersionHistoryOpen(true);
+  }, [activeView, flushActiveNote]);
+
+  const restoreNoteVersion = useCallback(async (versionId: string) => {
+    const current = activeNoteRef.current;
+    if (!current || activeView === "trash") return false;
+
+    await flushNote(current.id);
+    const restored = await window.notes.restoreVersion(current.id, versionId);
+    if (!restored) return false;
+
+    activeNoteRef.current = restored;
+    setActiveNote(restored);
+    setNoteSaveStatus(restored.id, "saved");
+    await refreshNotes();
+    return true;
+  }, [activeView, flushNote, refreshNotes, setNoteSaveStatus]);
+
   const moveNoteToTrash = useCallback(async () => {
     const target = noteToTrash;
     if (!target) return;
@@ -794,6 +816,7 @@ export function App() {
             readOnly={activeView === "trash"}
             tags={activeTags}
             onManageTags={() => setTagEditorOpen(true)}
+            onOpenHistory={() => void openVersionHistory()}
             onTitleChange={(title) => updateNote({ title })}
             onContentChange={(content) => updateNote({ content })}
           />
@@ -854,6 +877,7 @@ export function App() {
         </AlertDialogContent>
       </AlertDialog>
       <TagEditorDialog note={activeNote} tags={activeTags} open={tagEditorOpen} onOpenChange={setTagEditorOpen} onSave={saveTags} />
+      <VersionHistoryDialog note={activeNote} open={versionHistoryOpen} onOpenChange={setVersionHistoryOpen} onRestore={restoreNoteVersion} />
       <ArchivePasswordDialog action={archiveAction} onClose={() => setArchiveAction(null)} onImported={afterImport} />
     </SidebarProvider>
   );

@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { DEFAULT_NOTE_SORT, EMPTY_DOCUMENT, NotesRepository } from "./notes-repository";
+import { DEFAULT_NOTE_SORT, EMPTY_DOCUMENT, NOTE_VERSION_LIMIT, NotesRepository } from "./notes-repository";
 
 const databases: DatabaseSync[] = [];
 
@@ -27,6 +27,10 @@ function createRepository() {
   };
 }
 
+function documentWithText(text: string) {
+  return { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text }] }] };
+}
+
 afterEach(() => {
   databases.splice(0).forEach((database) => database.close());
 });
@@ -38,7 +42,7 @@ describe("NotesRepository", () => {
 
     const tables = (database.prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name ASC").all() as Array<{ name: string }>)
       .map(({ name }) => name);
-    expect(tables).toEqual(expect.arrayContaining(["note_search", "note_tags", "note_trash", "notes", "preferences", "tags"]));
+    expect(tables).toEqual(expect.arrayContaining(["note_search", "note_tags", "note_trash", "note_versions", "notes", "preferences", "tags"]));
     expect(tables).not.toContain("note_archive");
 
     expect(repository.getLocale()).toBe("en");
@@ -241,6 +245,50 @@ describe("NotesRepository", () => {
 
     expect(repository.get(note.id)).toMatchObject({ title: "Private plan" });
     expect(repository.search("roadmap")).toMatchObject([{ id: note.id, excerpt: "Local-only roadmap" }]);
+  });
+
+  it("keeps bounded local snapshots, avoids duplicate autosave versions, and restores a chosen version", () => {
+    const { repository, advance } = createRepository();
+    const note = repository.create();
+
+    advance(6);
+    const firstSave = repository.save({ ...note, title: "Shopping", content: documentWithText("Milk") });
+    expect(firstSave).toMatchObject({ title: "Shopping" });
+
+    advance(1);
+    const secondSave = repository.save({ ...firstSave!, content: documentWithText("Milk and bread") });
+    expect(secondSave).toMatchObject({ content: documentWithText("Milk and bread") });
+    expect(repository.listVersions(note.id)).toMatchObject([{ title: "Untitled", excerpt: "" }]);
+
+    advance(5);
+    const thirdSave = repository.save({ ...secondSave!, content: documentWithText("Milk, bread, and fruit") });
+    expect(thirdSave).toMatchObject({ content: documentWithText("Milk, bread, and fruit") });
+
+    const versions = repository.listVersions(note.id);
+    expect(versions).toMatchObject([
+      { title: "Shopping", excerpt: "Milk and bread" },
+      { title: "Untitled", excerpt: "" },
+    ]);
+
+    const restored = repository.restoreVersion(note.id, versions[0]!.id);
+    expect(restored).toMatchObject({ title: "Shopping", content: documentWithText("Milk and bread") });
+    expect(repository.listVersions(note.id)).toHaveLength(3);
+  });
+
+  it("retains no more than the local version limit and removes snapshots with a permanently deleted note", () => {
+    const { database, repository, advance } = createRepository();
+    let note = repository.create();
+
+    for (let index = 1; index <= NOTE_VERSION_LIMIT + 3; index += 1) {
+      advance(6);
+      note = repository.save({ ...note, title: `Version ${index}`, content: documentWithText(`Version ${index}`) })!;
+    }
+
+    expect(repository.listVersions(note.id)).toHaveLength(NOTE_VERSION_LIMIT);
+    repository.moveToTrash(note.id);
+    expect(repository.listVersions(note.id)).toEqual([]);
+    repository.permanentlyDelete(note.id);
+    expect(database.prepare("SELECT COUNT(*) AS count FROM note_versions WHERE note_id = ?").get(note.id)).toEqual({ count: 0 });
   });
 
   it("does not write malformed drafts and moves notes to a recoverable trash", () => {

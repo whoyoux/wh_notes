@@ -15,6 +15,7 @@ import {
   Download,
   Heading1,
   Heading2,
+  History,
   ImagePlus,
   Info,
   Italic,
@@ -53,6 +54,7 @@ type NoteEditorProps = {
   readOnly?: boolean;
   tags: Tag[];
   onManageTags: () => void;
+  onOpenHistory: () => void;
   onTitleChange: (title: string) => void;
   onContentChange: (content: Record<string, unknown>) => void;
 };
@@ -226,7 +228,7 @@ function insertImage(editor: Editor, image: LocalImage, position?: number, alt =
   else chain.insertContent(contentWithParagraph).run();
 }
 
-export function NoteEditor({ note, saveStatus, readOnly = false, tags, onManageTags, onTitleChange, onContentChange }: NoteEditorProps) {
+export function NoteEditor({ note, saveStatus, readOnly = false, tags, onManageTags, onOpenHistory, onTitleChange, onContentChange }: NoteEditorProps) {
   const { text } = useI18n();
   const onContentChangeRef = useRef(onContentChange);
   const importImageFilesRef = useRef<(currentEditor: Editor, files: File[], position?: number) => Promise<void>>(async () => undefined);
@@ -366,7 +368,12 @@ export function NoteEditor({ note, saveStatus, readOnly = false, tags, onManageT
           placeholder={text.untitled}
         />
         <div className="editor-statuses">
-          {!readOnly && <Button type="button" variant="outline" size="xs" onClick={onManageTags}><Tags className="size-3" />{tags.length ? `${tags.length}` : text.tags}</Button>}
+          {!readOnly && (
+            <div className="flex items-center gap-1">
+              <Button type="button" variant="outline" size="xs" onClick={onOpenHistory}><History className="size-3" />{text.versionHistory}</Button>
+              <Button type="button" variant="outline" size="xs" onClick={onManageTags}><Tags className="size-3" />{tags.length ? `${tags.length}` : text.tags}</Button>
+            </div>
+          )}
           <span className="editor-status" data-state={saveStatus} aria-live="polite">
             <span className="status-dot" />
             {saveStatusLabel}

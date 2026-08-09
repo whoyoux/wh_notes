@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
-import { Archive, Download, FileText, MoreHorizontal, NotebookPen, Plus, Trash2, Upload } from "lucide-react";
+import { Archive, Download, FileText, MoreHorizontal, NotebookPen, Pin, Plus, Trash2, Upload } from "lucide-react";
 import { useTheme } from "next-themes";
 import { NoteEditor } from "@/components/note-editor";
 import whNotesIcon from "@/assets/wh-notes-icon.png";
@@ -57,6 +57,7 @@ type NotesSidebarProps = {
   onShowTrash: () => void;
   onSelect: (id: string) => void;
   onRequestMoveToTrash: (note: NotePreview) => void;
+  onSetPinned: (id: string, isPinned: boolean) => void;
   onArchiveNote: (id: string) => void;
   onUnarchiveNote: (id: string) => void;
   onRestoreNote: (id: string) => void;
@@ -66,7 +67,7 @@ type NotesSidebarProps = {
   onImport: () => void;
 };
 
-function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, labels, onCreate, onShowNotes, onShowArchive, onShowTrash, onSelect, onRequestMoveToTrash, onArchiveNote, onUnarchiveNote, onRestoreNote, onRequestPermanentDelete, onExportNote, onExportAll, onImport }: NotesSidebarProps) {
+function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, labels, onCreate, onShowNotes, onShowArchive, onShowTrash, onSelect, onRequestMoveToTrash, onSetPinned, onArchiveNote, onUnarchiveNote, onRestoreNote, onRequestPermanentDelete, onExportNote, onExportAll, onImport }: NotesSidebarProps) {
   return (
     <Sidebar>
       <SidebarHeader>
@@ -129,6 +130,7 @@ function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, 
                   <SidebarMenuButton size="sm" isActive={note.id === activeId} onClick={() => onSelect(note.id)}>
                     <FileText className="size-3.5" strokeWidth={1.8} />
                     <span>{note.title || labels.untitled}</span>
+                    {note.isPinned && <Pin className="ml-auto size-3 text-muted-foreground" aria-label={labels.pinNote} />}
                   </SidebarMenuButton>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -137,6 +139,10 @@ function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, 
                       </SidebarMenuAction>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent side="right" align="start">
+                      <DropdownMenuItem onSelect={() => onSetPinned(note.id, !note.isPinned)}>
+                        <Pin />
+                        {note.isPinned ? labels.unpinNote : labels.pinNote}
+                      </DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => onArchiveNote(note.id)}>
                         <Archive />
                         {labels.archiveNote}
@@ -588,6 +594,18 @@ export function App() {
     }
   }, [clearActiveNote, flushNote, refreshArchived, refreshNotes, selectNote]);
 
+  const setPinned = useCallback(async (id: string, isPinned: boolean) => {
+    await flushNote(id);
+    const saved = await window.notes.setPinned(id, isPinned);
+    if (!saved) return;
+    await refreshNotes();
+    if (activeNoteRef.current?.id === id) {
+      activeNoteRef.current = saved;
+      setActiveNote(saved);
+      setSaveStatus(saveStatusesRef.current.get(saved.id) ?? "saved");
+    }
+  }, [flushNote, refreshNotes]);
+
   const unarchiveNote = useCallback(async (id: string) => {
     const restored = await window.notes.unarchive(id);
     await Promise.all([refreshNotes(), refreshArchived()]);
@@ -644,6 +662,7 @@ export function App() {
         onShowTrash={() => void showTrash()}
         onSelect={(id) => void selectNote(id)}
         onRequestMoveToTrash={setNoteToTrash}
+        onSetPinned={(id, isPinned) => void setPinned(id, isPinned)}
         onArchiveNote={(id) => void archiveNote(id)}
         onUnarchiveNote={(id) => void unarchiveNote(id)}
         onRestoreNote={(id) => void restoreNote(id)}

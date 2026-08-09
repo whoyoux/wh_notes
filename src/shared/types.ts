@@ -63,6 +63,7 @@ export type NotesApi = {
   create: () => Promise<Note>;
   save: (draft: NoteDraft) => Promise<Note | null>;
   moveToTrash: (id: string) => Promise<void>;
+  setPinned: (id: string, isPinned: boolean) => Promise<Note | null>;
   archive: (id: string) => Promise<void>;
   unarchive: (id: string) => Promise<Note | null>;
   restoreFromTrash: (id: string) => Promise<Note | null>;

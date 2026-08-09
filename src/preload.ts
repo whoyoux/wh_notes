@@ -10,6 +10,7 @@ const notesApi: NotesApi = {
   create: () => ipcRenderer.invoke("notes:create"),
   save: (draft: NoteDraft) => ipcRenderer.invoke("notes:save", draft),
   moveToTrash: (id) => ipcRenderer.invoke("notes:move-to-trash", id),
+  setPinned: (id, isPinned) => ipcRenderer.invoke("notes:set-pinned", id, isPinned),
   archive: (id) => ipcRenderer.invoke("notes:archive", id),
   unarchive: (id) => ipcRenderer.invoke("notes:unarchive", id),
   restoreFromTrash: (id) => ipcRenderer.invoke("notes:restore-from-trash", id),

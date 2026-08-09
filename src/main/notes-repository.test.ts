@@ -126,6 +126,20 @@ describe("NotesRepository", () => {
     expect(repository.unarchive(note.id)).toBeNull();
   });
 
+  it("pins notes durably, keeps them first, and never changes a trashed note", () => {
+    const { repository, advance } = createRepository();
+    const first = repository.create();
+    advance(1);
+    const second = repository.create();
+
+    expect(repository.setPinned(first.id, true)).toMatchObject({ id: first.id, isPinned: true });
+    expect(repository.list().map((note) => note.id)).toEqual([first.id, second.id]);
+
+    repository.moveToTrash(first.id);
+    expect(repository.setPinned(first.id, false)).toBeNull();
+    expect(repository.restoreFromTrash(first.id)).toMatchObject({ isPinned: true });
+  });
+
   it("does not write malformed drafts and moves notes to a recoverable trash", () => {
     const { repository } = createRepository();
     const note = repository.create();

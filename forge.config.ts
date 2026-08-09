@@ -1,14 +1,19 @@
 import type { ForgeConfig } from "@electron-forge/shared-types";
 import { MakerDeb } from "@electron-forge/maker-deb";
+import { MakerDMG } from "@electron-forge/maker-dmg";
 import { MakerRpm } from "@electron-forge/maker-rpm";
 import { MakerWix } from "@electron-forge/maker-wix";
+import { MakerZIP } from "@electron-forge/maker-zip";
 import { VitePlugin } from "@electron-forge/plugin-vite";
 import type { MSICreator } from "electron-wix-msi/lib/creator";
 import path from "node:path";
 
 const iconPath = path.join(__dirname, "resources", "wh-notes.ico");
+const macIconPath = path.join(__dirname, "resources", "wh-notes.icns");
 const windowsIconPath = path.join(__dirname, "resources", "wh-notes");
 const linuxIconPath = path.join(__dirname, "resources", "wh-notes.png");
+const packagerIconPath =
+  process.platform === "darwin" ? macIconPath : windowsIconPath;
 const nightlyVersion = process.env.WH_NOTES_NIGHTLY_VERSION;
 const [stableVersion, nightlyRevision] = nightlyVersion?.split("-", 2) ?? [];
 const linuxNightlyVersion =
@@ -40,7 +45,7 @@ function configurePerUserWixInstaller(creator: MSICreator) {
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
-    icon: windowsIconPath,
+    icon: packagerIconPath,
     extraResource: [iconPath],
     win32metadata: {
       CompanyName: "whoyoux",
@@ -108,6 +113,10 @@ const config: ForgeConfig = {
         ...linuxNightlyVersion,
       },
     }),
+    // This makes a universal app (Intel + Apple Silicon) when invoked with
+    // --platform=darwin --arch=universal. No signing or update manifest is set.
+    new MakerDMG(),
+    new MakerZIP({}, ["darwin"]),
   ],
   plugins: [
     new VitePlugin({

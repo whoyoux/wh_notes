@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/whoyoux/wh_notes/actions/workflows/nightly.yml"><img src="https://github.com/whoyoux/wh_notes/actions/workflows/nightly.yml/badge.svg" alt="Nightly build"></a>
-  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux-18181b?style=flat-square" alt="Windows and Linux">
+  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-18181b?style=flat-square" alt="Windows, macOS and Linux">
   <img src="https://img.shields.io/badge/privacy-offline%20by%20design-18181b?style=flat-square" alt="Offline by design">
   <img src="https://img.shields.io/badge/license-proprietary-18181b?style=flat-square" alt="Proprietary license">
 </p>
@@ -49,20 +49,21 @@ The interface is intentionally small and native-feeling: a focused notes sidebar
 
 Nightly builds are created automatically from every change merged into `main`. They are useful for trying the newest version before the first signed stable release.
 
-> Nightly installers are currently **unsigned**. Windows may show a SmartScreen warning. Download only from this repository's [Releases](https://github.com/whoyoux/wh_notes/releases) page and verify the included SHA-256 checksum.
+> Nightly installers are currently **unsigned**. Windows may show a SmartScreen warning and macOS may show a Gatekeeper warning. Download only from this repository's [Releases](https://github.com/whoyoux/wh_notes/releases) page and verify the included SHA-256 checksum.
 
-| Platform            | Download       | Install                             |
-| ------------------- | -------------- | ----------------------------------- |
-| Windows x64         | `wh_notes.msi` | Run the standard MSI installer.     |
-| Debian / Ubuntu x64 | `.deb`         | `sudo apt install ./wh-notes_*.deb` |
-| Fedora / RHEL x64   | `.rpm`         | `sudo dnf install ./wh-notes-*.rpm` |
+| Platform            | Download       | Install                                      |
+| ------------------- | -------------- | -------------------------------------------- |
+| Windows x64         | `wh_notes.msi` | Run the standard MSI installer.              |
+| macOS universal     | `.dmg`         | Open it and drag `wh_notes` to Applications. |
+| Debian / Ubuntu x64 | `.deb`         | `sudo apt install ./wh-notes_*.deb`          |
+| Fedora / RHEL x64   | `.rpm`         | `sudo dnf install ./wh-notes-*.rpm`          |
 
 ### Verify a download
 
 Every release includes `SHA256SUMS.txt`.
 
 ```powershell
-Get-FileHash .\wh_notes-Setup.exe -Algorithm SHA256
+Get-FileHash .\wh_notes.msi -Algorithm SHA256
 ```
 
 Compare the reported value with the matching entry in `SHA256SUMS.txt` before opening the installer.

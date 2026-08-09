@@ -52,13 +52,22 @@ jobs:
             os: windows-2025
             platform: win32
             arch: x64
+            macos: false
             rpm: false
             wix: true
           - id: linux-x64
             os: ubuntu-24.04
             platform: linux
             arch: x64
+            macos: false
             rpm: true
+            wix: false
+          - id: macos-universal
+            os: macos-15-intel
+            platform: darwin
+            arch: universal
+            macos: true
+            rpm: false
             wix: false
 
     steps:
@@ -140,6 +149,22 @@ jobs:
             throw "Squirrel update artifacts must not be included: $($legacyArtifacts.FullName -join ', ')"
           }
 
+      - name: Verify macOS archives have no update manifest
+        if: matrix.macos
+        shell: bash
+        run: |
+          set -euo pipefail
+          dmg_file="$(find out/make -type f -name '*.dmg' -print -quit)"
+          zip_file="$(find out/make -type f -name '*.zip' -print -quit)"
+          test "$(find out/make -type f -name '*.dmg' | wc -l | tr -d ' ')" -eq 1
+          test "$(find out/make -type f -name '*.zip' | wc -l | tr -d ' ')" -eq 1
+          [[ "$dmg_file" == *-universal.dmg ]]
+          [[ "$zip_file" == *-universal-*.zip ]]
+          if find out/make -type f -name 'RELEASES.json' -print -quit | grep -q .; then
+            echo "macOS update manifests must not be created."
+            exit 1
+          fi
+
       - name: Upload installer files
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
@@ -148,6 +173,8 @@ jobs:
             out/make/**/*.msi
             out/make/**/*.deb
             out/make/**/*.rpm
+            out/make/**/*.dmg
+            out/make/**/*.zip
           if-no-files-found: error
           retention-days: 14
 

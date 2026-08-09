@@ -38,7 +38,7 @@
     "@types/node": "26.2.0",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
-    "@vitejs/plugin-react": "5.2.0",
+    "@vitejs/plugin-react": "6.0.5",
     "electron": "43.3.0",
     "electron-winstaller": "5.4.4",
     "shadcn": "4.16.2",

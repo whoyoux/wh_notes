@@ -214,6 +214,20 @@ export class NotesRepository {
         DELETE FROM note_search WHERE note_id = old.id;
       END;
     `);
+
+    this.database.prepare(`
+      INSERT INTO note_search(note_id, title, content)
+      SELECT
+        notes.id,
+        notes.title,
+        COALESCE((
+          SELECT group_concat(value, ' ')
+          FROM json_tree(notes.content_json)
+          WHERE key = 'text' AND type = 'text'
+        ), '')
+      FROM notes
+      WHERE NOT EXISTS (SELECT 1 FROM note_search WHERE note_search.note_id = notes.id)
+    `).run();
   }
 
   getLocale(): Locale {

@@ -225,6 +225,24 @@ describe("NotesRepository", () => {
     expect(repository.search("vault")).toMatchObject([{ id: active.id, excerpt: "A local vault" }]);
   });
 
+  it("repairs only missing local search-index entries without changing notes", () => {
+    const { database, repository } = createRepository();
+    const note = repository.create();
+    repository.save({
+      ...note,
+      title: "Private plan",
+      content: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Local-only roadmap" }] }] },
+    });
+
+    database.prepare("DELETE FROM note_search WHERE note_id = ?").run(note.id);
+    expect(repository.search("roadmap")).toEqual([]);
+
+    repository.initialize();
+
+    expect(repository.get(note.id)).toMatchObject({ title: "Private plan" });
+    expect(repository.search("roadmap")).toMatchObject([{ id: note.id, excerpt: "Local-only roadmap" }]);
+  });
+
   it("does not write malformed drafts and moves notes to a recoverable trash", () => {
     const { repository } = createRepository();
     const note = repository.create();

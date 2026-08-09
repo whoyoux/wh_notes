@@ -257,6 +257,15 @@ export class NotesRepository {
       .run(now, id, id);
   }
 
+  setPinned(id: string, isPinned: boolean): Note | null {
+    const result = this.database.prepare(`
+      UPDATE notes
+      SET is_pinned = ?
+      WHERE id = ? AND NOT EXISTS (SELECT 1 FROM note_trash WHERE note_id = notes.id)
+    `).run(Number(isPinned), id);
+    return result.changes > 0 ? this.get(id) : null;
+  }
+
   archive(id: string) {
     this.database
       .prepare(`

@@ -325,6 +325,11 @@ function installIpcHandlers() {
       synchronizeAssets();
     }
   });
+  ipcMain.handle("notes:set-pinned", (event, id: unknown, isPinned: unknown) => {
+    assertTrustedSender(event);
+    if (!validId(id) || typeof isPinned !== "boolean") return null;
+    return notesRepository.setPinned(id, isPinned);
+  });
   ipcMain.handle("notes:archive", (event, id: unknown) => {
     assertTrustedSender(event);
     if (validId(id)) notesRepository.archive(id);

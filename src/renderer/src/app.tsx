@@ -25,6 +25,7 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuSub,
@@ -77,86 +78,96 @@ type NotesSidebarProps = {
   onImport: () => void;
 };
 
+const compactDropdownMenuClassName = "[&_[data-slot=dropdown-menu-item]]:text-xs [&_[data-slot=dropdown-menu-checkbox-item]]:text-xs [&_[data-slot=dropdown-menu-sub-trigger]]:text-xs";
+
 function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, tags, selectedTagIds, labels, onCreate, onSetSort, onToggleTagFilter, onShowNotes, onShowArchive, onShowTrash, onSelect, onRequestMoveToTrash, onSetPinned, onArchiveNote, onUnarchiveNote, onRestoreNote, onRequestPermanentDelete, onExportNote, onExportAll, onImport }: NotesSidebarProps) {
   return (
     <Sidebar>
       <SidebarHeader>
-        <div className="flex h-7 items-center gap-2 px-2">
-          <img src={whNotesIcon} alt="" className="size-5 rounded-[5px]" />
-          <span className="flex-1 text-xs font-semibold tracking-tight">wh_notes</span>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button type="button" variant="ghost" size="icon-xs" aria-label={labels.moreOptions}>
-                <MoreHorizontal className="size-3.5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger>
-                  <ArrowDownUp />
-                  {labels.sortNotes}
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent>
-                  <DropdownMenuItem onSelect={() => onSetSort("updated-desc")}>{labels.sortRecentlyEdited}</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => onSetSort("updated-asc")}>{labels.sortOldestEdited}</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => onSetSort("created-desc")}>{labels.sortRecentlyCreated}</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => onSetSort("title-asc")}>{labels.sortTitle}</DropdownMenuItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger>
-                  <TagIcon />
-                  {labels.filterTags}
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent>
-                  {tags.length === 0 ? <DropdownMenuItem disabled>{labels.noTags}</DropdownMenuItem> : tags.map((tag) => (
-                    <DropdownMenuCheckboxItem key={tag.id} checked={selectedTagIds.includes(tag.id)} onCheckedChange={() => onToggleTagFilter(tag.id)}>
-                      {tag.name}
-                    </DropdownMenuCheckboxItem>
-                  ))}
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={onExportAll} disabled={notes.length === 0}>
-                <Download />
-                {labels.exportAllNotes}
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={onImport}>
-                <Upload />
-                {labels.importNotes}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
         <SidebarMenu>
           <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton size="sm" aria-label={labels.moreOptions}>
+                  <img src={whNotesIcon} alt="" className="size-4 rounded-sm" />
+                  <span className="font-medium">wh_notes</span>
+                  <MoreHorizontal className="ml-auto" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className={compactDropdownMenuClassName}>
+                <DropdownMenuGroup>
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <ArrowDownUp />
+                      {labels.sortNotes}
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent className={compactDropdownMenuClassName}>
+                      <DropdownMenuGroup>
+                        <DropdownMenuItem onSelect={() => onSetSort("updated-desc")}>{labels.sortRecentlyEdited}</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => onSetSort("updated-asc")}>{labels.sortOldestEdited}</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => onSetSort("created-desc")}>{labels.sortRecentlyCreated}</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => onSetSort("title-asc")}>{labels.sortTitle}</DropdownMenuItem>
+                      </DropdownMenuGroup>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <TagIcon />
+                      {labels.filterTags}
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent className={compactDropdownMenuClassName}>
+                      <DropdownMenuGroup>
+                        {tags.length === 0 ? <DropdownMenuItem disabled>{labels.noTags}</DropdownMenuItem> : tags.map((tag) => (
+                          <DropdownMenuCheckboxItem key={tag.id} checked={selectedTagIds.includes(tag.id)} onCheckedChange={() => onToggleTagFilter(tag.id)}>
+                            {tag.name}
+                          </DropdownMenuCheckboxItem>
+                        ))}
+                      </DropdownMenuGroup>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  <DropdownMenuItem onSelect={onExportAll} disabled={notes.length === 0}>
+                    <Download />
+                    {labels.exportAllNotes}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={onImport}>
+                    <Upload />
+                    {labels.importNotes}
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
             <SidebarMenuButton size="sm" onClick={onCreate}>
-              <Plus className="size-3.5" />
-              <span className="text-xs">{labels.newNote}</span>
+              <Plus />
+              <span>{labels.newNote}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton size="sm" isActive={activeView === "notes"} onClick={onShowNotes}>
-              <FileText className="size-3.5" />
-              <span className="text-xs leading-4">{labels.notes}</span>
+              <FileText />
+              <span>{labels.notes}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton size="sm" isActive={activeView === "archive"} onClick={onShowArchive}>
-              <Archive className="size-3.5" />
-              <span className="text-xs leading-4">{labels.archive}</span>
+              <Archive />
+              <span>{labels.archive}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton size="sm" isActive={activeView === "trash"} onClick={onShowTrash}>
-              <Trash2 className="size-3.5" />
-              <span className="text-xs leading-4">{labels.trash}</span>
+              <Trash2 />
+              <span>{labels.trash}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
 
-      <SidebarContent style={{ flex: "1 1 auto" }}>
+      <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>{activeView === "notes" ? labels.notes : activeView === "archive" ? labels.archive : labels.trash}</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -164,85 +175,100 @@ function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, 
               {activeView === "notes" ? notes.map((note) => (
                 <SidebarMenuItem key={note.id}>
                   <SidebarMenuButton size="sm" isActive={note.id === activeId} onClick={() => onSelect(note.id)}>
-                    <FileText className="size-3.5" strokeWidth={1.8} />
-                    <span className="text-xs leading-4">{note.title || labels.untitled}</span>
-                    {note.isPinned && <Pin className="ml-auto size-3 text-muted-foreground" aria-label={labels.pinNote} />}
+                    <FileText />
+                    <span>{note.title || labels.untitled}</span>
+                    {note.isPinned && <Pin className="ml-auto" aria-label={labels.pinNote} />}
                   </SidebarMenuButton>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <SidebarMenuAction showOnHover aria-label={`${labels.moveToTrash}: ${note.title || labels.untitled}`}>
-                        <MoreHorizontal className="size-3.5" />
+                        <MoreHorizontal />
                       </SidebarMenuAction>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent side="right" align="start">
-                      <DropdownMenuItem onSelect={() => onSetPinned(note.id, !note.isPinned)}>
-                        <Pin />
-                        {note.isPinned ? labels.unpinNote : labels.pinNote}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => onArchiveNote(note.id)}>
-                        <Archive />
-                        {labels.archiveNote}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => onExportNote(note.id)}>
-                        <Download />
-                        {labels.exportNote}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem variant="destructive" onSelect={() => onRequestMoveToTrash(note)}>
-                        <Trash2 />
-                        {labels.moveToTrash}
-                      </DropdownMenuItem>
+                    <DropdownMenuContent side="right" align="start" className={compactDropdownMenuClassName}>
+                      <DropdownMenuGroup>
+                        <DropdownMenuItem onSelect={() => onSetPinned(note.id, !note.isPinned)}>
+                          <Pin />
+                          {note.isPinned ? labels.unpinNote : labels.pinNote}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => onArchiveNote(note.id)}>
+                          <Archive />
+                          {labels.archiveNote}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => onExportNote(note.id)}>
+                          <Download />
+                          {labels.exportNote}
+                        </DropdownMenuItem>
+                      </DropdownMenuGroup>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuGroup>
+                        <DropdownMenuItem variant="destructive" onSelect={() => onRequestMoveToTrash(note)}>
+                          <Trash2 />
+                          {labels.moveToTrash}
+                        </DropdownMenuItem>
+                      </DropdownMenuGroup>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </SidebarMenuItem>
               )) : activeView === "archive" ? archivedNotes.map((note) => (
                 <SidebarMenuItem key={note.id}>
                   <SidebarMenuButton size="sm" isActive={note.id === activeId} onClick={() => onSelect(note.id)}>
-                    <FileText className="size-3.5" strokeWidth={1.8} />
-                    <span className="text-xs leading-4">{note.title || labels.untitled}</span>
+                    <FileText />
+                    <span>{note.title || labels.untitled}</span>
                   </SidebarMenuButton>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <SidebarMenuAction showOnHover aria-label={`${labels.archive}: ${note.title || labels.untitled}`}>
-                        <MoreHorizontal className="size-3.5" />
+                        <MoreHorizontal />
                       </SidebarMenuAction>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent side="right" align="start">
-                      <DropdownMenuItem onSelect={() => onUnarchiveNote(note.id)}>
-                        <Archive />
-                        {labels.unarchive}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => onExportNote(note.id)}>
-                        <Download />
-                        {labels.exportNote}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem variant="destructive" onSelect={() => onRequestMoveToTrash(note)}>
-                        <Trash2 />
-                        {labels.moveToTrash}
-                      </DropdownMenuItem>
+                    <DropdownMenuContent side="right" align="start" className={compactDropdownMenuClassName}>
+                      <DropdownMenuGroup>
+                        <DropdownMenuItem onSelect={() => onUnarchiveNote(note.id)}>
+                          <Archive />
+                          {labels.unarchive}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => onExportNote(note.id)}>
+                          <Download />
+                          {labels.exportNote}
+                        </DropdownMenuItem>
+                      </DropdownMenuGroup>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuGroup>
+                        <DropdownMenuItem variant="destructive" onSelect={() => onRequestMoveToTrash(note)}>
+                          <Trash2 />
+                          {labels.moveToTrash}
+                        </DropdownMenuItem>
+                      </DropdownMenuGroup>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </SidebarMenuItem>
               )) : trashNotes.map((note) => (
                 <SidebarMenuItem key={note.id}>
                   <SidebarMenuButton size="sm" isActive={note.id === activeId} onClick={() => onSelect(note.id)}>
-                    <FileText className="size-3.5" strokeWidth={1.8} />
-                    <span className="text-xs leading-4">{note.title || labels.untitled}</span>
+                    <FileText />
+                    <span>{note.title || labels.untitled}</span>
                   </SidebarMenuButton>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <SidebarMenuAction showOnHover aria-label={`${labels.trash}: ${note.title || labels.untitled}`}>
-                        <MoreHorizontal className="size-3.5" />
+                        <MoreHorizontal />
                       </SidebarMenuAction>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent side="right" align="start">
-                      <DropdownMenuItem onSelect={() => onRestoreNote(note.id)}>
-                        <Upload />
-                        {labels.restoreNote}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem variant="destructive" onSelect={() => onRequestPermanentDelete(note)}>
-                        <Trash2 />
-                        {labels.deletePermanently}
-                      </DropdownMenuItem>
+                    <DropdownMenuContent side="right" align="start" className={compactDropdownMenuClassName}>
+                      <DropdownMenuGroup>
+                        <DropdownMenuItem onSelect={() => onRestoreNote(note.id)}>
+                          <Upload />
+                          {labels.restoreNote}
+                        </DropdownMenuItem>
+                      </DropdownMenuGroup>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuGroup>
+                        <DropdownMenuItem variant="destructive" onSelect={() => onRequestPermanentDelete(note)}>
+                          <Trash2 />
+                          {labels.deletePermanently}
+                        </DropdownMenuItem>
+                      </DropdownMenuGroup>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </SidebarMenuItem>
@@ -252,7 +278,7 @@ function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, 
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="mt-auto flex-row">
+      <SidebarFooter className="flex-row">
         <LanguageMenu />
         <ThemeMenu />
       </SidebarFooter>
@@ -324,13 +350,13 @@ function ArchivePasswordDialog({ action, onClose, onImported }: {
 
   return (
     <Dialog open={Boolean(action)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-sm">
-        <form onSubmit={(event) => void submit(event)}>
+      <DialogContent>
+        <form className="flex flex-col gap-4" onSubmit={(event) => void submit(event)}>
           <DialogHeader>
             <DialogTitle>{isExport ? text.exportArchiveTitle : text.importArchiveTitle}</DialogTitle>
             <DialogDescription>{isExport ? text.exportArchiveDescription : text.importArchiveDescription}</DialogDescription>
           </DialogHeader>
-          <div className="mt-4 grid gap-2">
+          <div className="flex flex-col gap-2">
             <Input
               type="password"
               autoComplete="new-password"
@@ -353,9 +379,9 @@ function ArchivePasswordDialog({ action, onClose, onImported }: {
             <p className="text-xs leading-5 text-muted-foreground">{text.passwordHint}</p>
             {error && <p className="text-xs text-destructive" role="alert">{error}</p>}
           </div>
-          <DialogFooter className="mt-4">
-            <Button type="button" size="sm" className="text-[10px]" variant="outline" onClick={onClose} disabled={isWorking}>{text.cancel}</Button>
-            <Button type="submit" size="sm" className="text-[10px]" disabled={isWorking}>{isExport ? text.export : text.import}</Button>
+          <DialogFooter>
+            <Button type="button" size="xs" variant="outline" onClick={onClose} disabled={isWorking}>{text.cancel}</Button>
+            <Button type="submit" size="xs" disabled={isWorking}>{isExport ? text.export : text.import}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -412,40 +438,40 @@ function TagEditorDialog({ note, tags, open, onOpenChange, onSave }: {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md gap-4 p-5">
-        <DialogHeader className="pr-6">
+      <DialogContent>
+        <DialogHeader>
           <DialogTitle>{text.manageTags}</DialogTitle>
           <DialogDescription>{note?.title || text.untitled}</DialogDescription>
         </DialogHeader>
         <form className="flex items-center gap-2" onSubmit={(event) => { event.preventDefault(); addTag(); }}>
           <Input className="flex-1" value={value} onChange={(event) => setValue(event.target.value)} placeholder={text.addTag} maxLength={50} />
-          <Button type="submit" variant="outline" size="sm" className="shrink-0 text-[10px]">{text.addTag}</Button>
+          <Button type="submit" variant="outline" className="shrink-0 text-xs">{text.addTag}</Button>
         </form>
-        <div className="space-y-2 border-t pt-3">
-          <p className="text-[11px] font-medium text-muted-foreground">{text.tags}</p>
+        <div className="flex flex-col gap-2">
+          <p className="text-xs font-medium text-muted-foreground">{text.tags}</p>
           {draft.length ? (
             <div className="flex flex-wrap gap-1.5">
               {draft.map((tag) => (
-                <Badge key={tag} variant="secondary" className="h-6 gap-1 rounded-md py-0 pr-1 pl-2 font-medium">
+                <Badge key={tag} variant="secondary">
                   <span>{tag}</span>
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon-xs"
-                    className="size-4 rounded-sm"
+                    className="-my-0.5 -mr-1"
                     aria-label={`${text.delete}: ${tag}`}
                     onClick={() => setDraft((current) => current.filter((item) => item !== tag))}
                   >
-                    <X className="size-3" />
+                    <X />
                   </Button>
                 </Badge>
               ))}
             </div>
           ) : <p className="text-xs text-muted-foreground">{text.noTags}</p>}
         </div>
-        <DialogFooter className="border-t pt-3">
-          <Button type="button" size="sm" className="text-[10px]" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>{text.cancel}</Button>
-          <Button type="button" size="sm" className="text-[10px]" onClick={() => void save()} disabled={saving}>{text.saveTags}</Button>
+        <DialogFooter>
+          <Button type="button" size="xs" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>{text.cancel}</Button>
+          <Button type="button" size="xs" onClick={() => void save()} disabled={saving}>{text.saveTags}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

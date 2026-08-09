@@ -1,4 +1,4 @@
-import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeImage, protocol, session } from "electron";
+import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeImage, nativeTheme, protocol, session } from "electron";
 import type { OpenDialogOptions, SaveDialogOptions } from "electron";
 import { DatabaseSync } from "node:sqlite";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
@@ -8,6 +8,7 @@ import type { IpcMainInvokeEvent, WebContents } from "electron";
 import type { ArchiveExportOptions, ArchiveImportResult, ImportImagePayload, LocalImage, LocalImageDetails, Locale, Note, NoteDraft, NotePreview, Theme } from "./shared/types";
 import { decryptArchive, encryptArchive, type ArchiveDocument } from "./main/archive-crypto";
 import { IMAGE_FORMATS, MAX_IMAGE_BYTES, validateImageBytes, type ImageMimeType } from "./main/media-validation";
+import { backgroundColorForTheme } from "./main/window-theme";
 
 let mainWindow: BrowserWindow | null = null;
 let database: DatabaseSync;
@@ -247,6 +248,19 @@ function getLocale(): Locale {
     .prepare("SELECT value FROM preferences WHERE key = 'locale'")
     .get() as { value?: string } | undefined;
   return row?.value === "pl" ? "pl" : "en";
+}
+
+function getTheme(): Theme {
+  const row = database
+    .prepare("SELECT value FROM preferences WHERE key = 'theme'")
+    .get() as { value?: string } | undefined;
+  return row?.value === "light" || row?.value === "dark" || row?.value === "system"
+    ? row.value
+    : "system";
+}
+
+function currentWindowBackgroundColor() {
+  return backgroundColorForTheme(getTheme(), nativeTheme.shouldUseDarkColors);
 }
 
 function createNote(locale = getLocale()): Note {
@@ -498,12 +512,7 @@ function installIpcHandlers() {
   });
   ipcMain.handle("preferences:get-theme", (event) => {
     assertTrustedSender(event);
-    const row = database
-      .prepare("SELECT value FROM preferences WHERE key = 'theme'")
-      .get() as { value?: string } | undefined;
-    return row?.value === "light" || row?.value === "dark" || row?.value === "system"
-      ? row.value
-      : "system";
+    return getTheme();
   });
   ipcMain.handle("preferences:set-theme", (event, theme: unknown) => {
     assertTrustedSender(event);
@@ -513,8 +522,11 @@ function installIpcHandlers() {
     database
       .prepare(
         "INSERT INTO preferences (key, value) VALUES ('theme', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-    )
-    .run(theme);
+      )
+      .run(theme);
+    mainWindow?.setBackgroundColor(
+      backgroundColorForTheme(theme, nativeTheme.shouldUseDarkColors),
+    );
   });
   ipcMain.handle("preferences:get-locale", (event) => {
     assertTrustedSender(event);
@@ -541,7 +553,8 @@ function createWindow() {
     minHeight: 540,
     title: "wh_notes",
     icon: applicationIconPath(),
-    backgroundColor: "#fafafa",
+    backgroundColor: currentWindowBackgroundColor(),
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -553,6 +566,10 @@ function createWindow() {
 
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   mainWindow.webContents.on("will-navigate", (event) => event.preventDefault());
+  mainWindow.once("ready-to-show", () => {
+    const window = mainWindow;
+    if (window && !window.isDestroyed()) window.show();
+  });
 
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     void mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
@@ -607,6 +624,11 @@ app.whenReady().then(() => {
   });
   createApplicationMenu(getLocale());
   createWindow();
+  nativeTheme.on("updated", () => {
+    if (getTheme() === "system") {
+      mainWindow?.setBackgroundColor(currentWindowBackgroundColor());
+    }
+  });
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

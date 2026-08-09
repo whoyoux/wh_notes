@@ -51,11 +51,11 @@ Nightly builds are created automatically from every change merged into `main`. T
 
 > Nightly installers are currently **unsigned**. Windows may show a SmartScreen warning. Download only from this repository's [Releases](https://github.com/whoyoux/wh_notes/releases) page and verify the included SHA-256 checksum.
 
-| Platform            | Download           | Install                             |
-| ------------------- | ------------------ | ----------------------------------- |
-| Windows x64         | `wh_notes-....msi` | Run the standard MSI installer.     |
-| Debian / Ubuntu x64 | `.deb`             | `sudo apt install ./wh-notes_*.deb` |
-| Fedora / RHEL x64   | `.rpm`             | `sudo dnf install ./wh-notes-*.rpm` |
+| Platform            | Download       | Install                             |
+| ------------------- | -------------- | ----------------------------------- |
+| Windows x64         | `wh_notes.msi` | Run the standard MSI installer.     |
+| Debian / Ubuntu x64 | `.deb`         | `sudo apt install ./wh-notes_*.deb` |
+| Fedora / RHEL x64   | `.rpm`         | `sudo dnf install ./wh-notes-*.rpm` |
 
 ### Verify a download
 

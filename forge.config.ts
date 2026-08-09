@@ -3,6 +3,7 @@ import { MakerDeb } from "@electron-forge/maker-deb";
 import { MakerRpm } from "@electron-forge/maker-rpm";
 import { MakerWix } from "@electron-forge/maker-wix";
 import { VitePlugin } from "@electron-forge/plugin-vite";
+import type { MSICreator } from "electron-wix-msi/lib/creator";
 import path from "node:path";
 
 const iconPath = path.join(__dirname, "resources", "wh-notes.ico");
@@ -14,6 +15,27 @@ const linuxNightlyVersion =
   stableVersion && nightlyRevision
     ? { version: stableVersion, revision: nightlyRevision }
     : {};
+
+const wixProgramFilesRoot = '<Directory Id="{{ProgramFilesFolder}}">';
+const wixPerUserRoot = '<Directory Id="LocalAppDataFolder">';
+
+function configurePerUserWixInstaller(creator: MSICreator) {
+  // electron-wix-msi marks the package as per-user, but its stock WiX template
+  // still roots application files in Program Files. That directory requires
+  // elevation, so use the current user's Local AppData directory instead.
+  if (!creator.wixTemplate.includes(wixProgramFilesRoot)) {
+    throw new Error(
+      "The WiX template no longer has the expected install root.",
+    );
+  }
+
+  creator.wixTemplate = creator.wixTemplate
+    .replace(wixProgramFilesRoot, wixPerUserRoot)
+    .replace(
+      'Name = "{{ApplicationName}} (Machine - MSI)"',
+      'Name = "{{ApplicationName}}"',
+    );
+}
 
 const config: ForgeConfig = {
   packagerConfig: {
@@ -32,6 +54,7 @@ const config: ForgeConfig = {
     new MakerWix({
       arch: "x64",
       appUserModelId: "com.whoyoux.wh_notes",
+      beforeCreate: configurePerUserWixInstaller,
       defaultInstallMode: "perUser",
       description: "Private, fully offline desktop notes.",
       exe: "wh_notes.exe",

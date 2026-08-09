@@ -111,13 +111,27 @@ jobs:
       - name: Build installer
         run: npm run make -- --platform=${{ matrix.platform }} --arch=${{ matrix.arch }}
 
-      - name: Verify the Windows MSI has no updater artifacts
+      - name: Verify the Windows MSI is per-user and has no updater
         if: matrix.wix
         shell: pwsh
         run: |
           $msiFiles = @(Get-ChildItem -Path out\make -Recurse -File -Filter *.msi)
           if ($msiFiles.Count -ne 1) {
             throw "Expected exactly one MSI installer, found $($msiFiles.Count)."
+          }
+          $wxsFiles = @(Get-ChildItem -Path out\make -Recurse -File -Filter *.wxs)
+          if ($wxsFiles.Count -ne 1) {
+            throw "Expected exactly one generated WiX source file, found $($wxsFiles.Count)."
+          }
+          $wxs = Get-Content -Raw $wxsFiles[0].FullName
+          foreach ($expected in @(
+            '<Directory Id="LocalAppDataFolder">',
+            'InstallScope="perUser"',
+            'Id="MSIINSTALLPERUSER" Secure="yes" Value="1"'
+          )) {
+            if (-not $wxs.Contains($expected)) {
+              throw "Windows installer is not configured as a per-user install: missing $expected"
+            }
           }
           $legacyArtifacts = @(Get-ChildItem -Path out\make -Recurse -File | Where-Object {
             $_.Name -eq "Update.exe" -or $_.Name -eq "RELEASES" -or $_.Extension -eq ".nupkg"

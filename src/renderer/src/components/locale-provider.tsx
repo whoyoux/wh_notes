@@ -4,7 +4,7 @@ import type { Locale } from "../../../shared/types";
 const translations = {
   en: {
     newNote: "New note",
-    notes: "NOTES",
+    notes: "Notes",
     trash: "Trash",
     untitled: "Untitled",
     loading: "Loading…",
@@ -85,7 +85,7 @@ const translations = {
   },
   pl: {
     newNote: "Nowa notatka",
-    notes: "NOTATKI",
+    notes: "Notatki",
     trash: "Kosz",
     untitled: "Bez tytułu",
     loading: "Wczytywanie…",

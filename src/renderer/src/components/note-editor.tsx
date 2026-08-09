@@ -28,6 +28,13 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useI18n } from "@/components/locale-provider";
+import {
+  formatByteSize,
+  imageInsertionContent,
+  localImageId,
+  MAX_EDITOR_IMAGE_BYTES,
+  SUPPORTED_IMAGE_MIME_TYPES,
+} from "@/lib/editor-utils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -35,8 +42,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import type { LocalImage, Note } from "../../../shared/types";
 
 const lowlight = createLowlight(common);
-const MAX_IMAGE_BYTES = 50 * 1024 * 1024;
-const IMAGE_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/gif", "image/webp"]);
 
 type NoteEditorProps = {
   note: Note;
@@ -76,17 +81,6 @@ function ToolbarButton({ label, icon: Icon, active = false, disabled = false, on
 
 function ToolbarDivider() {
   return <span className="mx-1 h-4 w-px bg-border" aria-hidden="true" />;
-}
-
-function formatByteSize(byteSize: number) {
-  if (byteSize < 1024) return `${byteSize} B`;
-  if (byteSize < 1024 * 1024) return `${(byteSize / 1024).toFixed(1)} KB`;
-  return `${(byteSize / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function localImageId(src: unknown) {
-  const match = typeof src === "string" ? /^notes-media:\/\/image\/([a-f0-9-]{36})$/i.exec(src) : null;
-  return match?.[1] ?? null;
 }
 
 function ImageNodeView({ node, selected, deleteNode }: ReactNodeViewProps) {
@@ -216,8 +210,7 @@ function EditorToolbar({ onInsertImage }: { onInsertImage: () => void }) {
 }
 
 function insertImage(editor: Editor, image: LocalImage, position?: number, alt = "") {
-  const content = { type: "image", attrs: { src: image.src, alt } };
-  const contentWithParagraph = [content, { type: "paragraph" }];
+  const contentWithParagraph = imageInsertionContent(image.src, alt);
   const chain = editor.chain().focus();
   if (typeof position === "number") chain.insertContentAt(position, contentWithParagraph).run();
   else chain.insertContent(contentWithParagraph).run();
@@ -245,7 +238,7 @@ export function NoteEditor({ note, onTitleChange, onContentChange }: NoteEditorP
   }, []);
 
   const importImageFiles = useCallback(async (currentEditor: Editor, files: File[], position?: number) => {
-    const imageFiles = files.filter((file) => IMAGE_MIME_TYPES.has(file.type));
+    const imageFiles = files.filter((file) => SUPPORTED_IMAGE_MIME_TYPES.has(file.type));
     if (imageFiles.length === 0) {
       showMediaMessage(text.imageUnsupported);
       return;
@@ -255,7 +248,7 @@ export function NoteEditor({ note, onTitleChange, onContentChange }: NoteEditorP
     let insertedCount = 0;
 
     for (const file of imageFiles) {
-      if (file.size > MAX_IMAGE_BYTES) {
+      if (file.size > MAX_EDITOR_IMAGE_BYTES) {
         showMediaMessage(text.imageTooLarge);
         continue;
       }
@@ -298,7 +291,7 @@ export function NoteEditor({ note, onTitleChange, onContentChange }: NoteEditorP
         HTMLAttributes: { class: "note-image" },
       }),
       FileHandler.configure({
-        allowedMimeTypes: [...IMAGE_MIME_TYPES],
+        allowedMimeTypes: [...SUPPORTED_IMAGE_MIME_TYPES],
         consumePasteEvent: true,
         onPaste: (currentEditor, files) => {
           void importImageFilesRef.current(currentEditor, files, currentEditor.state.selection.from);

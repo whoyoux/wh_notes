@@ -1,11 +1,12 @@
 import type { ForgeConfig } from "@electron-forge/shared-types";
 import { MakerDeb } from "@electron-forge/maker-deb";
 import { MakerRpm } from "@electron-forge/maker-rpm";
-import { MakerSquirrel } from "@electron-forge/maker-squirrel";
+import { MakerWix } from "@electron-forge/maker-wix";
 import { VitePlugin } from "@electron-forge/plugin-vite";
 import path from "node:path";
 
 const iconPath = path.join(__dirname, "resources", "wh-notes.ico");
+const windowsIconPath = path.join(__dirname, "resources", "wh-notes");
 const linuxIconPath = path.join(__dirname, "resources", "wh-notes.png");
 const nightlyVersion = process.env.WH_NOTES_NIGHTLY_VERSION;
 const [stableVersion, nightlyRevision] = nightlyVersion?.split("-", 2) ?? [];
@@ -17,11 +18,33 @@ const linuxNightlyVersion =
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
-    icon: iconPath,
+    icon: windowsIconPath,
     extraResource: [iconPath],
+    win32metadata: {
+      CompanyName: "whoyoux",
+      FileDescription: "Private, fully offline desktop notes.",
+      InternalName: "wh_notes",
+      OriginalFilename: "wh_notes.exe",
+      ProductName: "wh_notes",
+    },
   },
   makers: [
-    new MakerSquirrel({ name: "wh_notes", setupIcon: iconPath }),
+    new MakerWix({
+      arch: "x64",
+      appUserModelId: "com.whoyoux.wh_notes",
+      defaultInstallMode: "perUser",
+      description: "Private, fully offline desktop notes.",
+      exe: "wh_notes.exe",
+      features: { autoLaunch: false, autoUpdate: false },
+      icon: iconPath,
+      manufacturer: "whoyoux",
+      name: "wh_notes",
+      programFilesFolderName: "wh_notes",
+      shortcutFolderName: "whoyoux",
+      shortcutName: "wh_notes",
+      shortName: "wh_notes",
+      upgradeCode: "5A6EBFEC-C682-4FA4-A079-554D9BEBDA5B",
+    }),
     new MakerDeb({
       options: {
         name: "wh-notes",

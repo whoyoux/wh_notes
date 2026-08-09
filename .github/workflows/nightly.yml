@@ -34,6 +34,9 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Run unit tests
+        run: npm test
+
       - name: Audit runtime dependencies
         run: npm audit --omit=dev --audit-level=high
 
@@ -50,11 +53,13 @@ jobs:
             platform: win32
             arch: x64
             rpm: false
+            wix: true
           - id: linux-x64
             os: ubuntu-24.04
             platform: linux
             arch: x64
             rpm: true
+            wix: false
 
     steps:
       - name: Check out source
@@ -72,6 +77,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes rpm fakeroot
 
+      - name: Install WiX Toolset
+        if: matrix.wix
+        shell: pwsh
+        run: |
+          choco install wixtoolset --version=3.14.0 --yes --no-progress
+          $wixBin = "C:\Program Files (x86)\WiX Toolset v3.14\bin"
+          if (-not (Test-Path "$wixBin\candle.exe") -or -not (Test-Path "$wixBin\light.exe")) {
+            throw "WiX Toolset installation is incomplete."
+          }
+          $wixBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
       - name: Install dependencies
         run: npm ci
 
@@ -85,6 +101,21 @@ jobs:
 
       - name: Build installer
         run: npm run make -- --platform=${{ matrix.platform }} --arch=${{ matrix.arch }}
+
+      - name: Verify the Windows MSI has no updater artifacts
+        if: matrix.wix
+        shell: pwsh
+        run: |
+          $msiFiles = @(Get-ChildItem -Path out\make -Recurse -File -Filter *.msi)
+          if ($msiFiles.Count -ne 1) {
+            throw "Expected exactly one MSI installer, found $($msiFiles.Count)."
+          }
+          $legacyArtifacts = @(Get-ChildItem -Path out\make -Recurse -File | Where-Object {
+            $_.Name -eq "Update.exe" -or $_.Name -eq "RELEASES" -or $_.Extension -eq ".nupkg"
+          })
+          if ($legacyArtifacts.Count -gt 0) {
+            throw "Squirrel update artifacts must not be included: $($legacyArtifacts.FullName -join ', ')"
+          }
 
       - name: Upload installer files
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7

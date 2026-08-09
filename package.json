@@ -22,7 +22,9 @@
     "prepackage": "node scripts/check-node-version.mjs",
     "premake": "node scripts/check-node-version.mjs",
     "postinstall": "node node_modules/electron/install.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "license": "UNLICENSED",
   "engines": {
@@ -32,7 +34,7 @@
     "@electron-forge/cli": "7.11.2",
     "@electron-forge/maker-deb": "7.11.2",
     "@electron-forge/maker-rpm": "7.11.2",
-    "@electron-forge/maker-squirrel": "7.11.2",
+    "@electron-forge/maker-wix": "7.11.2",
     "@electron-forge/plugin-vite": "7.11.2",
     "@tailwindcss/vite": "4.3.3",
     "@types/node": "26.2.0",
@@ -40,10 +42,10 @@
     "@types/react-dom": "19.2.4",
     "@vitejs/plugin-react": "6.0.5",
     "electron": "43.3.0",
-    "electron-winstaller": "5.4.4",
     "shadcn": "4.16.2",
     "typescript": "7.0.2",
-    "vite": "8.2.1"
+    "vite": "8.2.1",
+    "vitest": "4.1.10"
   },
   "dependencies": {
     "@fontsource-variable/geist": "5.3.0",

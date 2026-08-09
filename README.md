@@ -44,6 +44,7 @@ The interface is intentionally small and native-feeling: a focused notes sidebar
 - **Reliable local saving** &mdash; the editor clearly shows when a change is saving, saved on this device, or could not be written.
 - **Tested local storage** &mdash; the SQLite repository is covered by automated tests for note creation, saving, ordering, deletion, and local preferences.
 - **Trash with recovery** &mdash; deleted notes stay on this device in Trash for 30 days, where they can be restored or permanently deleted.
+- **Archive without deleting** &mdash; move finished notes out of the active list, then restore them whenever they become relevant again.
 - **Keyboard shortcuts** &mdash; familiar shortcuts for creating, saving, exporting, and formatting notes; the complete reference is in [Keyboard shortcuts](docs/keyboard-shortcuts.md).
 - **Local image handling** &mdash; paste or drag images into a note; wh_notes copies them into its own storage so the original file can be moved or deleted safely.
 - **Portable encrypted archives** &mdash; export one note or your complete library into an encrypted archive, then import it on another computer.

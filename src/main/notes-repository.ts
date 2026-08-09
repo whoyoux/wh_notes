@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
-import type { Locale, Note, NoteDraft, NotePreview, Theme, TrashedNotePreview } from "../shared/types";
+import type { ArchivedNotePreview, Locale, Note, NoteDraft, NotePreview, Theme, TrashedNotePreview } from "../shared/types";
 
 export const TRASH_RETENTION_DAYS = 30;
 const TRASH_RETENTION_MS = TRASH_RETENTION_DAYS * 24 * 60 * 60 * 1000;
@@ -78,6 +78,13 @@ export class NotesRepository {
       ) STRICT;
 
       CREATE INDEX IF NOT EXISTS note_trash_trashed_at_idx ON note_trash(trashed_at);
+
+      CREATE TABLE IF NOT EXISTS note_archive (
+        note_id TEXT PRIMARY KEY REFERENCES notes(id) ON DELETE CASCADE,
+        archived_at TEXT NOT NULL
+      ) STRICT;
+
+      CREATE INDEX IF NOT EXISTS note_archive_archived_at_idx ON note_archive(archived_at);
     `);
   }
 
@@ -132,7 +139,8 @@ export class NotesRepository {
         SELECT notes.id, notes.title, notes.is_pinned, notes.created_at, notes.updated_at
         FROM notes
         LEFT JOIN note_trash ON note_trash.note_id = notes.id
-        WHERE note_trash.note_id IS NULL
+        LEFT JOIN note_archive ON note_archive.note_id = notes.id
+        WHERE note_trash.note_id IS NULL AND note_archive.note_id IS NULL
         ORDER BY notes.is_pinned DESC, notes.updated_at DESC
       `)
       .all() as Record<string, unknown>[];
@@ -143,6 +151,28 @@ export class NotesRepository {
       isPinned: Boolean(row.is_pinned),
       createdAt: String(row.created_at),
       updatedAt: String(row.updated_at),
+    }));
+  }
+
+  listArchived(): ArchivedNotePreview[] {
+    const rows = this.database
+      .prepare(`
+        SELECT notes.id, notes.title, notes.is_pinned, notes.created_at, notes.updated_at, note_archive.archived_at
+        FROM note_archive
+        INNER JOIN notes ON notes.id = note_archive.note_id
+        LEFT JOIN note_trash ON note_trash.note_id = notes.id
+        WHERE note_trash.note_id IS NULL
+        ORDER BY note_archive.archived_at DESC
+      `)
+      .all() as Array<Record<string, unknown>>;
+
+    return rows.map((row) => ({
+      id: String(row.id),
+      title: String(row.title),
+      isPinned: Boolean(row.is_pinned),
+      createdAt: String(row.created_at),
+      updatedAt: String(row.updated_at),
+      archivedAt: String(row.archived_at),
     }));
   }
 
@@ -225,6 +255,23 @@ export class NotesRepository {
         WHERE id = ? AND NOT EXISTS (SELECT 1 FROM note_trash WHERE note_id = ?)
       `)
       .run(now, id, id);
+  }
+
+  archive(id: string) {
+    this.database
+      .prepare(`
+        INSERT INTO note_archive (note_id, archived_at)
+        SELECT id, ? FROM notes
+        WHERE id = ?
+          AND NOT EXISTS (SELECT 1 FROM note_trash WHERE note_id = ?)
+          AND NOT EXISTS (SELECT 1 FROM note_archive WHERE note_id = ?)
+      `)
+      .run(this.now().toISOString(), id, id, id);
+  }
+
+  unarchive(id: string): Note | null {
+    const result = this.database.prepare("DELETE FROM note_archive WHERE note_id = ?").run(id);
+    return result.changes > 0 ? this.get(id) : null;
   }
 
   restoreFromTrash(id: string): Note | null {

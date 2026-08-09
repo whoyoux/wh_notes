@@ -298,6 +298,10 @@ function installIpcHandlers() {
     assertTrustedSender(event);
     return listNotes();
   });
+  ipcMain.handle("notes:list-archived", (event) => {
+    assertTrustedSender(event);
+    return notesRepository.listArchived();
+  });
   ipcMain.handle("notes:list-trash", (event) => {
     assertTrustedSender(event);
     return notesRepository.listTrash();
@@ -320,6 +324,15 @@ function installIpcHandlers() {
       notesRepository.moveToTrash(id);
       synchronizeAssets();
     }
+  });
+  ipcMain.handle("notes:archive", (event, id: unknown) => {
+    assertTrustedSender(event);
+    if (validId(id)) notesRepository.archive(id);
+  });
+  ipcMain.handle("notes:unarchive", (event, id: unknown) => {
+    assertTrustedSender(event);
+    if (!validId(id)) return null;
+    return notesRepository.unarchive(id);
   });
   ipcMain.handle("notes:restore-from-trash", (event, id: unknown) => {
     assertTrustedSender(event);

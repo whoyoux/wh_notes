@@ -1,0 +1,70 @@
+{
+  "name": "wh-notes",
+  "productName": "wh_notes",
+  "version": "0.1.0",
+  "description": "Private, fully offline desktop notes.",
+  "author": "whoyoux",
+  "homepage": "https://whoyoux.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/whoyoux/wh_notes.git"
+  },
+  "bugs": {
+    "url": "https://github.com/whoyoux/wh_notes/issues"
+  },
+  "private": true,
+  "main": ".vite/build/main.js",
+  "scripts": {
+    "start": "electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "publish": "electron-forge publish",
+    "prepackage": "node scripts/check-node-version.mjs",
+    "premake": "node scripts/check-node-version.mjs",
+    "postinstall": "node node_modules/electron/install.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "7.11.2",
+    "@electron-forge/maker-deb": "7.11.2",
+    "@electron-forge/maker-rpm": "7.11.2",
+    "@electron-forge/maker-squirrel": "7.11.2",
+    "@electron-forge/plugin-vite": "7.11.2",
+    "@tailwindcss/vite": "4.3.3",
+    "@types/node": "26.2.0",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "@vitejs/plugin-react": "5.2.0",
+    "electron": "43.3.0",
+    "electron-winstaller": "5.4.4",
+    "shadcn": "4.16.2",
+    "typescript": "7.0.2",
+    "vite": "7.3.6"
+  },
+  "dependencies": {
+    "@fontsource-variable/geist": "5.3.0",
+    "@fontsource-variable/geist-mono": "5.3.0",
+    "@radix-ui/react-dropdown-menu": "2.1.24",
+    "@radix-ui/react-tooltip": "1.2.16",
+    "@tiptap/extension-code-block-lowlight": "3.29.2",
+    "@tiptap/extension-file-handler": "^3.29.2",
+    "@tiptap/extension-image": "^3.29.2",
+    "@tiptap/extension-placeholder": "3.29.2",
+    "@tiptap/react": "3.29.2",
+    "@tiptap/starter-kit": "3.29.2",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "lowlight": "3.3.0",
+    "lucide-react": "1.30.0",
+    "next-themes": "0.4.6",
+    "radix-ui": "^1.6.7",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "tailwind-merge": "3.6.0",
+    "tailwindcss": "4.3.3"
+  }
+}

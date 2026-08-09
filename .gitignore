@@ -1,0 +1,15 @@
+node_modules/
+.vite/
+out/
+makers/
+.reference/
+*.log
+.env
+.env.*
+*.p12
+*.pfx
+*.pem
+*.key
+*.mobileprovision
+electron-windows-sign.log
+release-assets/

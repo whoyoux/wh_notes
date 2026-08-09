@@ -1,0 +1,143 @@
+name: Build nightly installers
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify source
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Audit runtime dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+  package:
+    name: Package ${{ matrix.id }}
+    needs: verify
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: windows-x64
+            os: windows-2025
+            platform: win32
+            arch: x64
+            rpm: false
+          - id: linux-x64
+            os: ubuntu-24.04
+            platform: linux
+            arch: x64
+            rpm: true
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install Linux packaging tools
+        if: matrix.rpm
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes rpm fakeroot
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set a unique nightly package version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="0.1.0-nightly${GITHUB_RUN_NUMBER}"
+          echo "WH_NOTES_NIGHTLY_VERSION=$version" >> "$GITHUB_ENV"
+          WH_NOTES_NIGHTLY_VERSION="$version" node scripts/set-build-version.mjs "$version"
+
+      - name: Build installer
+        run: npm run make -- --platform=${{ matrix.platform }} --arch=${{ matrix.arch }}
+
+      - name: Upload installer files
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: package-${{ matrix.id }}
+          path: out/make/**
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish nightly pre-release
+    needs: package
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+
+    steps:
+      - name: Download installer files
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          pattern: package-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Prepare checksums and release metadata
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="nightly-$(date -u +'%Y%m%d.%H%M')-${GITHUB_SHA::7}"
+          find release-assets -type f -print0 | sort -z | xargs -0 sha256sum > release-assets/SHA256SUMS.txt
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "title=wh_notes nightly — ${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+          TITLE: ${{ steps.release.outputs.title }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' files < <(find release-assets -type f -print0)
+          gh release create "$TAG" "${files[@]}" \
+            --target "$GITHUB_SHA" \
+            --title "$TITLE" \
+            --notes "Automatyczny, niesygnowany build z gałęzi main. Commit: $GITHUB_SHA" \
+            --prerelease
+
+      - name: Attest public release assets
+        if: ${{ !github.event.repository.private }}
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-path: release-assets/**

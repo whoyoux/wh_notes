@@ -1,0 +1,174 @@
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import type { Locale } from "../../../shared/types";
+
+const translations = {
+  en: {
+    newNote: "New note",
+    notes: "NOTES",
+    untitled: "Untitled",
+    loading: "Loading…",
+    noNotes: "No notes yet",
+    noNotesDescription: "Create your first note — it will be saved locally.",
+    saved: "Saved",
+    insertImage: "Insert image",
+    imageImporting: "Adding image...",
+    imageImported: "Image saved locally",
+    imageTooLarge: "Images can be up to 50 MB",
+    imageUnsupported: "Use a PNG, JPEG, GIF, or WebP image",
+    imageImportFailed: "Couldn't add that image",
+    imageActions: "Image actions",
+    copyImage: "Copy image",
+    saveImageAs: "Save as",
+    imageDetails: "Image details",
+    deleteImage: "Delete image",
+    imageStoredLocally: "Stored only on this device.",
+    imageType: "Type",
+    imageSize: "Size",
+    imageAdded: "Added",
+    backup: "Backup",
+    archiveNote: "Archive note",
+    exportNote: "Export this note",
+    exportAllNotes: "Export all notes",
+    importNotes: "Import notes",
+    exportArchiveTitle: "Export encrypted notes",
+    importArchiveTitle: "Import encrypted notes",
+    exportArchiveDescription: "Choose a password for the portable backup file. It cannot be recovered.",
+    importArchiveDescription: "Enter the password used when this backup was exported.",
+    password: "Password",
+    confirmPassword: "Confirm password",
+    passwordHint: "At least 12 characters. It is never stored.",
+    passwordTooShort: "Use at least 12 characters.",
+    passwordsDoNotMatch: "Passwords do not match.",
+    export: "Export",
+    import: "Import",
+    archiveError: "The password or archive file is invalid.",
+    startWriting: "Start writing…",
+    noteTitle: "Note title",
+    theme: "Theme",
+    light: "Light",
+    dark: "Dark",
+    system: "System",
+    language: "Language",
+    undo: "Undo",
+    redo: "Redo",
+    heading1: "Heading 1",
+    heading2: "Heading 2",
+    bold: "Bold",
+    italic: "Italic",
+    strike: "Strikethrough",
+    bulletList: "Bullet list",
+    orderedList: "Ordered list",
+    quote: "Quote",
+    codeBlock: "Code block",
+    deleteNote: "Delete note",
+    deleteNoteTitle: "Delete note?",
+    deleteNoteDescription: "This will permanently remove “{title}” from this device.",
+    cancel: "Cancel",
+    delete: "Delete",
+  },
+  pl: {
+    newNote: "Nowa notatka",
+    notes: "NOTATKI",
+    untitled: "Bez tytułu",
+    loading: "Wczytywanie…",
+    noNotes: "Nie ma jeszcze żadnych notatek",
+    noNotesDescription: "Utwórz pierwszą notatkę — zostanie zapisana lokalnie.",
+    saved: "Zapisano",
+    insertImage: "Wstaw obraz",
+    imageImporting: "Dodawanie obrazu...",
+    imageImported: "Obraz zapisany lokalnie",
+    imageTooLarge: "Obrazy mogą mieć maksymalnie 50 MB",
+    imageUnsupported: "Użyj obrazu PNG, JPEG, GIF lub WebP",
+    imageImportFailed: "Nie udało się dodać obrazu",
+    imageActions: "Opcje obrazu",
+    copyImage: "Kopiuj obraz",
+    saveImageAs: "Zapisz jako",
+    imageDetails: "Szczegóły obrazu",
+    deleteImage: "Usuń obraz",
+    imageStoredLocally: "Zapisany tylko na tym urządzeniu.",
+    imageType: "Typ",
+    imageSize: "Rozmiar",
+    imageAdded: "Dodano",
+    backup: "Kopia zapasowa",
+    archiveNote: "Archiwizuj notatkę",
+    exportNote: "Eksportuj tę notatkę",
+    exportAllNotes: "Eksportuj wszystkie notatki",
+    importNotes: "Importuj notatki",
+    exportArchiveTitle: "Eksportuj zaszyfrowane notatki",
+    importArchiveTitle: "Importuj zaszyfrowane notatki",
+    exportArchiveDescription: "Ustaw hasło dla przenośnej kopii. Nie da się go później odzyskać.",
+    importArchiveDescription: "Wpisz hasło użyte podczas tworzenia tej kopii.",
+    password: "Hasło",
+    confirmPassword: "Potwierdź hasło",
+    passwordHint: "Co najmniej 12 znaków. Hasło nie jest zapisywane.",
+    passwordTooShort: "Użyj co najmniej 12 znaków.",
+    passwordsDoNotMatch: "Hasła nie są takie same.",
+    export: "Eksportuj",
+    import: "Importuj",
+    archiveError: "Hasło lub plik kopii jest nieprawidłowy.",
+    startWriting: "Zacznij pisać…",
+    noteTitle: "Tytuł notatki",
+    theme: "Motyw",
+    light: "Jasny",
+    dark: "Ciemny",
+    system: "Systemowy",
+    language: "Język",
+    undo: "Cofnij",
+    redo: "Ponów",
+    heading1: "Nagłówek 1",
+    heading2: "Nagłówek 2",
+    bold: "Pogrubienie",
+    italic: "Kursywa",
+    strike: "Przekreślenie",
+    bulletList: "Lista punktowana",
+    orderedList: "Lista numerowana",
+    quote: "Cytat",
+    codeBlock: "Blok kodu",
+    deleteNote: "Usuń notatkę",
+    deleteNoteTitle: "Usunąć notatkę?",
+    deleteNoteDescription: "Ta operacja trwale usunie „{title}” z tego urządzenia.",
+    cancel: "Anuluj",
+    delete: "Usuń",
+  },
+} as const;
+
+type I18nContextValue = {
+  locale: Locale;
+  setLocale: (locale: Locale) => void;
+  text: (typeof translations)[Locale];
+};
+
+const I18nContext = createContext<I18nContextValue | null>(null);
+
+export function LocaleProvider({ children }: { children: ReactNode }) {
+  const [locale, setLocaleState] = useState<Locale>("en");
+
+  useEffect(() => {
+    void window.notes.getLocale().then(setLocaleState);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.lang = locale;
+    document.title = "wh_notes";
+  }, [locale]);
+
+  const value = useMemo<I18nContextValue>(
+    () => ({
+      locale,
+      setLocale: (nextLocale) => {
+        setLocaleState(nextLocale);
+        void window.notes.setLocale(nextLocale);
+      },
+      text: translations[locale],
+    }),
+    [locale],
+  );
+
+  return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
+}
+
+export function useI18n() {
+  const context = useContext(I18nContext);
+  if (!context) throw new Error("useI18n must be used within LocaleProvider.");
+  return context;
+}

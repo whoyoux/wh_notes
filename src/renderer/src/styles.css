@@ -1,0 +1,152 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.952 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.145 0 0);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --sidebar: oklch(0.175 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.922 0 0);
+  --sidebar-primary-foreground: oklch(0.205 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+* { border-color: var(--border); }
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  overflow: hidden;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "ss02";
+}
+button, input { font: inherit; }
+
+.editor-workspace { display: flex; min-width: 0; min-height: 0; flex: 1; flex-direction: column; overflow: hidden; background: var(--background); }
+.editor-heading { display: flex; align-items: center; justify-content: space-between; padding: 20px 28px 14px; }
+.editor-title { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: var(--foreground); font-size: 1.125rem; font-weight: 600; letter-spacing: -0.025em; line-height: 1.25; }
+.editor-title::placeholder { color: var(--muted-foreground); }
+.editor-status { display: inline-flex; align-items: center; gap: 6px; margin-left: 20px; color: var(--muted-foreground); font-size: 11px; }
+.status-dot { width: 5px; height: 5px; border-radius: 999px; background: #22a06b; }
+.editor-toolbar { display: flex; align-items: center; min-height: 42px; gap: 1px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 4px 20px; background: var(--background); }
+.editor-scroll-area { min-height: 0; flex: 1; overflow-y: auto; }
+.editor-page { box-sizing: border-box; width: min(100%, 720px); max-width: 720px; min-height: 100%; margin: 0; padding: 28px 28px 120px; }
+.prose-editor { min-height: 100%; color: var(--foreground); font-size: 15px; line-height: 1.75; letter-spacing: -0.004em; }
+.prose-editor > :first-child { margin-top: 0; }
+.prose-editor p { margin: 0 0 1rem; }
+.prose-editor p.is-editor-empty:first-child::before { float: left; height: 0; color: var(--muted-foreground); content: attr(data-placeholder); pointer-events: none; }
+.prose-editor h1 { margin: 2rem 0 0.65rem; font-size: 1.55rem; font-weight: 650; letter-spacing: -0.03em; line-height: 1.25; }
+.prose-editor h2 { margin: 1.65rem 0 0.6rem; font-size: 1.25rem; font-weight: 620; letter-spacing: -0.02em; line-height: 1.3; }
+.prose-editor ul, .prose-editor ol { margin: 0.9rem 0 1.1rem; padding-left: 1.35rem; }
+.prose-editor li { padding-left: 0.18rem; }
+.prose-editor blockquote { margin: 1.25rem 0; border-left: 2px solid var(--foreground); padding-left: 1rem; color: var(--muted-foreground); }
+.note-image-node { position: relative; display: block; width: fit-content; max-width: 100%; margin: 1.35rem 0; }
+.prose-editor img.note-image { display: block; max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 8px; }
+.note-image-node.is-selected img.note-image, .prose-editor .ProseMirror-selectednode img.note-image { outline: 2px solid var(--ring); outline-offset: 2px; }
+.note-image-menu-trigger { position: absolute; top: 8px; right: 8px; box-shadow: 0 1px 3px oklch(0 0 0 / 18%); }
+.image-details-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.5rem 1rem; margin: 0; font-size: 0.8125rem; }
+.image-details-grid dt { color: var(--muted-foreground); }
+.image-details-grid dd { margin: 0; color: var(--foreground); text-align: right; }
+.prose-editor code { border-radius: 4px; background: var(--muted); padding: 0.1rem 0.28rem; font-family: var(--font-mono); font-size: 0.84em; }
+.prose-editor pre { margin: 1.35rem 0; overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--muted); padding: 0.9rem 1rem; color: var(--foreground); }
+.prose-editor pre code { border-radius: 0; background: transparent; padding: 0; font-size: 0.8rem; line-height: 1.7; }
+.prose-editor pre .hljs-keyword, .prose-editor pre .hljs-selector-tag { color: #7359c7; }
+.prose-editor pre .hljs-string, .prose-editor pre .hljs-attr { color: #16785a; }
+.prose-editor pre .hljs-number, .prose-editor pre .hljs-literal { color: #ae5c1c; }
+.prose-editor pre .hljs-comment { color: #777; }
+.dark .prose-editor pre .hljs-keyword, .dark .prose-editor pre .hljs-selector-tag { color: #b7a1ff; }
+.dark .prose-editor pre .hljs-string, .dark .prose-editor pre .hljs-attr { color: #73d2a9; }
+.dark .prose-editor pre .hljs-number, .dark .prose-editor pre .hljs-literal { color: #f0a76a; }
+
+.empty-workspace { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; }
+.empty-workspace h1 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.02em; }
+.empty-workspace p { max-width: 320px; margin: 4px 0 0; color: var(--muted-foreground); font-size: 13px; line-height: 1.5; }
+.empty-icon { display: grid; width: 36px; height: 36px; place-items: center; border: 1px solid var(--border); border-radius: 8px; color: var(--muted-foreground); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+}

@@ -1,0 +1,97 @@
+<p align="center">
+  <img src="docs/assets/wh-notes-icon.png" width="92" alt="wh_notes icon">
+</p>
+
+<h1 align="center">wh_notes</h1>
+
+<p align="center">
+  <strong>Private notes. One device. No cloud.</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/whoyoux/wh_notes/actions/workflows/nightly.yml"><img src="https://github.com/whoyoux/wh_notes/actions/workflows/nightly.yml/badge.svg" alt="Nightly build"></a>
+  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux-18181b?style=flat-square" alt="Windows and Linux">
+  <img src="https://img.shields.io/badge/privacy-offline%20by%20design-18181b?style=flat-square" alt="Offline by design">
+  <img src="https://img.shields.io/badge/license-proprietary-18181b?style=flat-square" alt="Proprietary license">
+</p>
+
+<p align="center">
+  <a href="https://github.com/whoyoux/wh_notes/releases"><strong>Download nightly builds</strong></a>
+  &middot;
+  <a href="#features">Features</a>
+  &middot;
+  <a href="#install">Install</a>
+  &middot;
+  <a href="#privacy">Privacy</a>
+</p>
+
+---
+
+<img src="docs/assets/wh-notes-editor-dark.png" alt="wh_notes dark editor with sidebar and rich-text toolbar" width="100%">
+
+## A quiet place for your notes
+
+wh_notes is a minimalist desktop app for people who want their notes to stay on their own computer. It has no account, no cloud sync, no telemetry, and no hidden online dependency at runtime.
+
+The interface is intentionally small and native-feeling: a focused notes sidebar, a readable editor width, and the tools you need without visual noise.
+
+## Features
+
+- **Offline by design** &mdash; notes, preferences, images, and encrypted archives stay on your device.
+- **Rich-text editor** &mdash; headings, lists, quotes, inline code, code blocks with syntax highlighting, and keyboard-friendly editing.
+- **Local image handling** &mdash; paste or drag images into a note; wh_notes copies them into its own storage so the original file can be moved or deleted safely.
+- **Portable encrypted archives** &mdash; export one note or your complete library into an encrypted archive, then import it on another computer.
+- **Light and dark themes** &mdash; powered by shadcn/ui, with the choice stored locally.
+- **English and Polish** &mdash; switch the interface language at any time.
+- **No lock-in** &mdash; your data is local, and backup/export is built in from the start.
+
+## Install
+
+Nightly builds are created automatically from every change merged into `main`. They are useful for trying the newest version before the first signed stable release.
+
+> Nightly installers are currently **unsigned**. Windows may show a SmartScreen warning. Download only from this repository's [Releases](https://github.com/whoyoux/wh_notes/releases) page and verify the included SHA-256 checksum.
+
+| Platform            | Download                 | Install                             |
+| ------------------- | ------------------------ | ----------------------------------- |
+| Windows x64         | `wh_notes-... Setup.exe` | Run the installer.                  |
+| Debian / Ubuntu x64 | `.deb`                   | `sudo apt install ./wh-notes_*.deb` |
+| Fedora / RHEL x64   | `.rpm`                   | `sudo dnf install ./wh-notes-*.rpm` |
+
+### Verify a download
+
+Every release includes `SHA256SUMS.txt`.
+
+```powershell
+Get-FileHash .\wh_notes-Setup.exe -Algorithm SHA256
+```
+
+Compare the reported value with the matching entry in `SHA256SUMS.txt` before opening the installer.
+
+## Privacy
+
+wh_notes does not require a login and does not send note content to a cloud service. The app operates offline; GitHub Releases are only a place to manually download installers.
+
+## Development
+
+The packaging toolchain uses Node.js 24.
+
+```powershell
+npm ci
+npm run typecheck
+npm start
+```
+
+Build an installer for the current system with:
+
+```powershell
+npm run make
+```
+
+## Releases
+
+- **Nightly:** automatic prerelease on every push to `main`, with a unique build version.
+- **Stable:** versioned release from a `vX.Y.Z` tag, enabled after Windows code signing is configured.
+
+## License
+
+wh_notes is proprietary software. Official installers may be downloaded and used; the source code may not be copied, modified, reverse engineered, or redistributed without written permission. See [LICENSE](LICENSE).

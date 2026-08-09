@@ -9,9 +9,10 @@ const iconPath = path.join(__dirname, "resources", "wh-notes.ico");
 const linuxIconPath = path.join(__dirname, "resources", "wh-notes.png");
 const nightlyVersion = process.env.WH_NOTES_NIGHTLY_VERSION;
 const [stableVersion, nightlyRevision] = nightlyVersion?.split("-", 2) ?? [];
-const linuxNightlyVersion = stableVersion && nightlyRevision
-  ? { version: stableVersion, revision: nightlyRevision }
-  : {};
+const linuxNightlyVersion =
+  stableVersion && nightlyRevision
+    ? { version: stableVersion, revision: nightlyRevision }
+    : {};
 
 const config: ForgeConfig = {
   packagerConfig: {
@@ -25,9 +26,11 @@ const config: ForgeConfig = {
       options: {
         name: "wh-notes",
         productName: "wh_notes",
+        bin: "wh_notes",
         genericName: "Private offline notes",
         description: "Private desktop notes that stay on your device.",
-        productDescription: "A private, fully offline desktop application for writing and managing notes.",
+        productDescription:
+          "A private, fully offline desktop application for writing and managing notes.",
         section: "utils",
         priority: "optional",
         maintainer: "whoyoux <elementalistapp@gmail.com>",
@@ -41,9 +44,11 @@ const config: ForgeConfig = {
       options: {
         name: "wh-notes",
         productName: "wh_notes",
+        bin: "wh_notes",
         genericName: "Private offline notes",
         description: "Private desktop notes that stay on your device.",
-        productDescription: "A private, fully offline desktop application for writing and managing notes.",
+        productDescription:
+          "A private, fully offline desktop application for writing and managing notes.",
         license: "Proprietary",
         group: "Applications/Office",
         homepage: "https://whoyoux.com",

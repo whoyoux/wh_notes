@@ -13,4 +13,3 @@ makers/
 *.mobileprovision
 electron-windows-sign.log
 release-assets/
-resources/wh-notes.icns

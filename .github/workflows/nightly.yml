@@ -133,7 +133,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node scripts/generate-macos-icon.mjs
           npm run package -- --platform=${{ matrix.platform }} --arch=${{ matrix.arch }}
           app_path="out/wh_notes-darwin-${{ matrix.arch }}/wh_notes.app"
           test -d "$app_path"

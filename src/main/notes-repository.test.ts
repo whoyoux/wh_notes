@@ -19,6 +19,7 @@ function createRepository() {
   repository.initialize();
 
   return {
+    database,
     repository,
     advance(minutes: number) {
       currentTime = new Date(currentTime.getTime() + minutes * 60_000);
@@ -32,8 +33,12 @@ afterEach(() => {
 
 describe("NotesRepository", () => {
   it("initializes idempotently and persists local preferences", () => {
-    const { repository } = createRepository();
+    const { database, repository } = createRepository();
     repository.initialize();
+
+    const tables = (database.prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name ASC").all() as Array<{ name: string }>)
+      .map(({ name }) => name);
+    expect(tables).toEqual(["note_tags", "note_trash", "notes", "preferences", "tags"]);
 
     expect(repository.getLocale()).toBe("en");
     expect(repository.getTheme()).toBe("system");
@@ -91,39 +96,32 @@ describe("NotesRepository", () => {
     expect(repository.list().map((note) => note.id)).toEqual([first.id, second.id]);
   });
 
-  it("keeps active, archived, and trashed notes separate while exporting active and archived notes", () => {
+  it("keeps active and trashed notes separate while exporting only active notes", () => {
     const { repository, advance } = createRepository();
     const first = repository.create();
     advance(1);
     const second = repository.create();
     advance(1);
     const third = repository.create();
-    repository.archive(second.id);
     repository.moveToTrash(third.id);
 
-    expect(repository.list().map((note) => note.id)).toEqual([first.id]);
-    expect(repository.listArchived()).toMatchObject([{ id: second.id }]);
+    expect(repository.list().map((note) => note.id)).toEqual([second.id, first.id]);
     expect(repository.listTrash()).toMatchObject([{ id: third.id }]);
-    expect(repository.forArchive().map((note) => note.id)).toEqual([first.id, second.id]);
-    expect(repository.forArchive([third.id, second.id]).map((note) => note.id)).toEqual([second.id]);
-    expect(() => repository.forArchive([])).toThrow("Invalid notes selection.");
-    expect(() => repository.forArchive(["not-an-id"])).toThrow("Invalid notes selection.");
+    expect(repository.forExport().map((note) => note.id)).toEqual([first.id, second.id]);
+    expect(repository.forExport([third.id, second.id]).map((note) => note.id)).toEqual([second.id]);
+    expect(() => repository.forExport([])).toThrow("Invalid notes selection.");
+    expect(() => repository.forExport(["not-an-id"])).toThrow("Invalid notes selection.");
   });
 
-  it("restores a trashed archive back to the archive and unarchives it safely", () => {
+  it("restores a trashed note directly to the active list", () => {
     const { repository } = createRepository();
     const note = repository.create();
 
-    repository.archive(note.id);
     repository.moveToTrash(note.id);
-    expect(repository.listArchived()).toEqual([]);
-
     expect(repository.restoreFromTrash(note.id)).toMatchObject({ id: note.id });
-    expect(repository.listArchived()).toMatchObject([{ id: note.id }]);
-
-    expect(repository.unarchive(note.id)).toMatchObject({ id: note.id });
     expect(repository.list().map((item) => item.id)).toEqual([note.id]);
-    expect(repository.unarchive(note.id)).toBeNull();
+    expect(repository.listTrash()).toEqual([]);
+    expect(repository.restoreFromTrash(note.id)).toBeNull();
   });
 
   it("pins notes durably, keeps them first, and never changes a trashed note", () => {
@@ -185,9 +183,6 @@ describe("NotesRepository", () => {
     repository.moveToTrash(first.id);
     expect(() => repository.setTags(first.id, ["Private"])).toThrow("Cannot tag a trashed note.");
     expect(repository.list([work!.id]).map((note) => note.id)).toEqual([second.id]);
-
-    repository.archive(second.id);
-    expect(repository.listArchived([work!.id]).map((note) => note.id)).toEqual([second.id]);
 
     repository.setTags(second.id, []);
     expect(repository.listTags().map((tag) => tag.name)).toEqual(["Polish notes", "Work"]);

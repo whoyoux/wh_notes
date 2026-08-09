@@ -232,12 +232,12 @@ function getNote(id: string): Note | null {
   return notesRepository.get(id);
 }
 
-function notesForArchive(noteIds?: unknown): Note[] {
-  return notesRepository.forArchive(noteIds);
+function notesForExport(noteIds?: unknown): Note[] {
+  return notesRepository.forExport(noteIds);
 }
 
 function createArchive(noteIds?: unknown): ArchiveDocument {
-  const notes = notesForArchive(noteIds);
+  const notes = notesForExport(noteIds);
   if (notes.length === 0) throw new Error("There are no notes to export.");
 
   const assetIds = new Set<string>();
@@ -298,10 +298,6 @@ function installIpcHandlers() {
     assertTrustedSender(event);
     return tagIds === undefined ? listNotes() : notesRepository.list(Array.isArray(tagIds) ? tagIds as string[] : []);
   });
-  ipcMain.handle("notes:list-archived", (event, tagIds: unknown) => {
-    assertTrustedSender(event);
-    return notesRepository.listArchived(tagIds === undefined ? [] : Array.isArray(tagIds) ? tagIds as string[] : []);
-  });
   ipcMain.handle("notes:list-trash", (event) => {
     assertTrustedSender(event);
     return notesRepository.listTrash();
@@ -329,15 +325,6 @@ function installIpcHandlers() {
     assertTrustedSender(event);
     if (!validId(id) || typeof isPinned !== "boolean") return null;
     return notesRepository.setPinned(id, isPinned);
-  });
-  ipcMain.handle("notes:archive", (event, id: unknown) => {
-    assertTrustedSender(event);
-    if (validId(id)) notesRepository.archive(id);
-  });
-  ipcMain.handle("notes:unarchive", (event, id: unknown) => {
-    assertTrustedSender(event);
-    if (!validId(id)) return null;
-    return notesRepository.unarchive(id);
   });
   ipcMain.handle("notes:restore-from-trash", (event, id: unknown) => {
     assertTrustedSender(event);

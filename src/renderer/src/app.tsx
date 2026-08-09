@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
-import { Archive, ArrowDownUp, Download, FileText, MoreHorizontal, NotebookPen, Pin, Plus, Tag as TagIcon, Tags, Trash2, Upload, X } from "lucide-react";
+import { ArrowDownUp, Download, FileText, MoreHorizontal, NotebookPen, Pin, Plus, Tag as TagIcon, Tags, Trash2, Upload, X } from "lucide-react";
 import { useTheme } from "next-themes";
 import { NoteEditor } from "@/components/note-editor";
 import whNotesIcon from "@/assets/wh-notes-icon.png";
@@ -49,14 +49,13 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar";
 import type { AppCommand } from "../../shared/app-commands";
-import type { ArchivedNotePreview, Note, NotePreview, NoteSort, Tag, TrashedNotePreview } from "../../shared/types";
+import type { Note, NotePreview, NoteSort, Tag, TrashedNotePreview } from "../../shared/types";
 
 type NotesSidebarProps = {
   notes: NotePreview[];
-  archivedNotes: ArchivedNotePreview[];
   trashNotes: TrashedNotePreview[];
   activeId?: string;
-  activeView: "notes" | "archive" | "trash";
+  activeView: "notes" | "trash";
   tags: Tag[];
   selectedTagIds: string[];
   labels: ReturnType<typeof useI18n>["text"];
@@ -64,13 +63,10 @@ type NotesSidebarProps = {
   onSetSort: (sort: NoteSort) => void;
   onToggleTagFilter: (tagId: string) => void;
   onShowNotes: () => void;
-  onShowArchive: () => void;
   onShowTrash: () => void;
   onSelect: (id: string) => void;
   onRequestMoveToTrash: (note: NotePreview) => void;
   onSetPinned: (id: string, isPinned: boolean) => void;
-  onArchiveNote: (id: string) => void;
-  onUnarchiveNote: (id: string) => void;
   onRestoreNote: (id: string) => void;
   onRequestPermanentDelete: (note: TrashedNotePreview) => void;
   onExportNote: (id: string) => void;
@@ -80,7 +76,7 @@ type NotesSidebarProps = {
 
 const compactDropdownMenuClassName = "[&_[data-slot=dropdown-menu-item]]:text-xs [&_[data-slot=dropdown-menu-checkbox-item]]:text-xs [&_[data-slot=dropdown-menu-sub-trigger]]:text-xs";
 
-function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, tags, selectedTagIds, labels, onCreate, onSetSort, onToggleTagFilter, onShowNotes, onShowArchive, onShowTrash, onSelect, onRequestMoveToTrash, onSetPinned, onArchiveNote, onUnarchiveNote, onRestoreNote, onRequestPermanentDelete, onExportNote, onExportAll, onImport }: NotesSidebarProps) {
+function NotesSidebar({ notes, trashNotes, activeId, activeView, tags, selectedTagIds, labels, onCreate, onSetSort, onToggleTagFilter, onShowNotes, onShowTrash, onSelect, onRequestMoveToTrash, onSetPinned, onRestoreNote, onRequestPermanentDelete, onExportNote, onExportAll, onImport }: NotesSidebarProps) {
   return (
     <Sidebar>
       <SidebarHeader>
@@ -153,12 +149,6 @@ function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, 
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton size="sm" isActive={activeView === "archive"} onClick={onShowArchive}>
-              <Archive />
-              <span>{labels.archive}</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
             <SidebarMenuButton size="sm" isActive={activeView === "trash"} onClick={onShowTrash}>
               <Trash2 />
               <span>{labels.trash}</span>
@@ -169,7 +159,7 @@ function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, 
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>{activeView === "notes" ? labels.notes : activeView === "archive" ? labels.archive : labels.trash}</SidebarGroupLabel>
+          <SidebarGroupLabel>{activeView === "notes" ? labels.notes : labels.trash}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="gap-1">
               {activeView === "notes" ? notes.map((note) => (
@@ -190,43 +180,6 @@ function NotesSidebar({ notes, archivedNotes, trashNotes, activeId, activeView, 
                         <DropdownMenuItem onSelect={() => onSetPinned(note.id, !note.isPinned)}>
                           <Pin />
                           {note.isPinned ? labels.unpinNote : labels.pinNote}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => onArchiveNote(note.id)}>
-                          <Archive />
-                          {labels.archiveNote}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => onExportNote(note.id)}>
-                          <Download />
-                          {labels.exportNote}
-                        </DropdownMenuItem>
-                      </DropdownMenuGroup>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuGroup>
-                        <DropdownMenuItem variant="destructive" onSelect={() => onRequestMoveToTrash(note)}>
-                          <Trash2 />
-                          {labels.moveToTrash}
-                        </DropdownMenuItem>
-                      </DropdownMenuGroup>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </SidebarMenuItem>
-              )) : activeView === "archive" ? archivedNotes.map((note) => (
-                <SidebarMenuItem key={note.id}>
-                  <SidebarMenuButton size="sm" isActive={note.id === activeId} onClick={() => onSelect(note.id)}>
-                    <FileText />
-                    <span>{note.title || labels.untitled}</span>
-                  </SidebarMenuButton>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <SidebarMenuAction showOnHover aria-label={`${labels.archive}: ${note.title || labels.untitled}`}>
-                        <MoreHorizontal />
-                      </SidebarMenuAction>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent side="right" align="start" className={`${compactDropdownMenuClassName} min-w-44`}>
-                      <DropdownMenuGroup>
-                        <DropdownMenuItem onSelect={() => onUnarchiveNote(note.id)}>
-                          <Archive />
-                          {labels.unarchive}
                         </DropdownMenuItem>
                         <DropdownMenuItem onSelect={() => onExportNote(note.id)}>
                           <Download />
@@ -481,13 +434,12 @@ function TagEditorDialog({ note, tags, open, onOpenChange, onSave }: {
 export function App() {
   const { text } = useI18n();
   const [notes, setNotes] = useState<NotePreview[]>([]);
-  const [archivedNotes, setArchivedNotes] = useState<ArchivedNotePreview[]>([]);
   const [trashNotes, setTrashNotes] = useState<TrashedNotePreview[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [activeTags, setActiveTags] = useState<Tag[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [tagEditorOpen, setTagEditorOpen] = useState(false);
-  const [activeView, setActiveView] = useState<"notes" | "archive" | "trash">("notes");
+  const [activeView, setActiveView] = useState<"notes" | "trash">("notes");
   const [activeNote, setActiveNote] = useState<Note | null>(null);
   const [loading, setLoading] = useState(true);
   const [noteToTrash, setNoteToTrash] = useState<NotePreview | null>(null);
@@ -518,12 +470,6 @@ export function App() {
     return previews;
   }, [selectedTagIds]);
 
-  const refreshArchived = useCallback(async () => {
-    const previews = await window.notes.listArchived(selectedTagIds);
-    setArchivedNotes(previews);
-    return previews;
-  }, [selectedTagIds]);
-
   const refreshTrash = useCallback(async () => {
     const previews = await window.notes.listTrash();
     setTrashNotes(previews);
@@ -538,15 +484,15 @@ export function App() {
 
   const setNoteSort = useCallback(async (sort: NoteSort) => {
     await window.notes.setSort(sort);
-    await Promise.all([refreshNotes(), refreshArchived()]);
-  }, [refreshArchived, refreshNotes]);
+    await refreshNotes();
+  }, [refreshNotes]);
 
   useEffect(() => {
-    void Promise.all([refreshNotes(), refreshArchived(), refreshTrash(), refreshTags()]).then(([previews]) => {
+    void Promise.all([refreshNotes(), refreshTrash(), refreshTags()]).then(([previews]) => {
       if (previews[0]) void selectNote(previews[0].id);
       setLoading(false);
     });
-  }, [refreshArchived, refreshNotes, refreshTags, refreshTrash, selectNote]);
+  }, [refreshNotes, refreshTags, refreshTrash, selectNote]);
 
   const createNote = useCallback(async () => {
     const note = await window.notes.create();
@@ -575,8 +521,8 @@ export function App() {
     if (!note) return;
     const nextTags = await window.notes.setTags(note.id, names);
     setActiveTags(nextTags);
-    await Promise.all([refreshTags(), refreshNotes(), refreshArchived()]);
-  }, [refreshArchived, refreshNotes, refreshTags]);
+    await Promise.all([refreshTags(), refreshNotes()]);
+  }, [refreshNotes, refreshTags]);
 
   const showNotes = useCallback(async () => {
     setActiveView("notes");
@@ -593,14 +539,6 @@ export function App() {
     if (previews[0]) await selectNote(previews[0].id);
     else clearActiveNote();
   }, [clearActiveNote, refreshTrash, selectNote]);
-
-  const showArchive = useCallback(async () => {
-    setActiveView("archive");
-    const previews = await refreshArchived();
-    if (activeNoteRef.current && previews.some((note) => note.id === activeNoteRef.current?.id)) return;
-    if (previews[0]) await selectNote(previews[0].id);
-    else clearActiveNote();
-  }, [clearActiveNote, refreshArchived, selectNote]);
 
   useEffect(
     () => () => {
@@ -637,7 +575,7 @@ export function App() {
           if (!saved) return;
 
           pendingSavesRef.current.delete(noteId);
-          await Promise.all([refreshNotes(), refreshArchived()]);
+          await refreshNotes();
         });
 
       saveChainsRef.current.set(noteId, next);
@@ -648,7 +586,7 @@ export function App() {
       });
       return next;
     },
-    [refreshArchived, refreshNotes, setNoteSaveStatus],
+    [refreshNotes, setNoteSaveStatus],
   );
 
   const queueSave = useCallback((note: Note) => {
@@ -709,36 +647,36 @@ export function App() {
     if (activeNoteRef.current?.id === target.id) setSaveStatus("saved");
 
     await window.notes.moveToTrash(target.id);
-    const [remaining, remainingArchived] = await Promise.all([refreshNotes(), refreshArchived(), refreshTrash()]);
+    const [remaining] = await Promise.all([refreshNotes(), refreshTrash()]);
     setNoteToTrash(null);
 
     if (activeNoteRef.current?.id === target.id) {
-      const next = activeView === "archive" ? remainingArchived[0] : remaining[0];
+      const next = remaining[0];
       if (next) {
         await selectNote(next.id);
       } else {
         clearActiveNote();
       }
     }
-  }, [activeView, clearActiveNote, flushNote, noteToTrash, refreshArchived, refreshNotes, refreshTrash, selectNote]);
+  }, [clearActiveNote, flushNote, noteToTrash, refreshNotes, refreshTrash, selectNote]);
 
   const restoreNote = useCallback(async (id: string) => {
     const restored = await window.notes.restoreFromTrash(id);
-    const [active, archived] = await Promise.all([refreshNotes(), refreshArchived(), refreshTrash()]);
+    const [active] = await Promise.all([refreshNotes(), refreshTrash()]);
     if (!restored) return;
-    setActiveView(archived.some((note) => note.id === id) ? "archive" : "notes");
+    setActiveView("notes");
     activeNoteRef.current = restored;
     setActiveNote(restored);
     setSaveStatus(saveStatusesRef.current.get(restored.id) ?? "saved");
-    if (!active.some((note) => note.id === id) && !archived.some((note) => note.id === id)) clearActiveNote();
-  }, [clearActiveNote, refreshArchived, refreshNotes, refreshTrash]);
+    if (!active.some((note) => note.id === id)) clearActiveNote();
+  }, [clearActiveNote, refreshNotes, refreshTrash]);
 
   const permanentlyDeleteNote = useCallback(async () => {
     const target = noteToPermanentlyDelete;
     if (!target) return;
 
     await window.notes.permanentlyDelete(target.id);
-    const [remaining] = await Promise.all([refreshTrash(), refreshArchived()]);
+    const remaining = await refreshTrash();
     setNoteToPermanentlyDelete(null);
     saveStatusesRef.current.delete(target.id);
 
@@ -747,19 +685,7 @@ export function App() {
       if (next) await selectNote(next.id);
       else clearActiveNote();
     }
-  }, [clearActiveNote, noteToPermanentlyDelete, refreshArchived, refreshTrash, selectNote]);
-
-  const archiveNote = useCallback(async (id: string) => {
-    await flushNote(id);
-    await window.notes.archive(id);
-    const [remaining] = await Promise.all([refreshNotes(), refreshArchived()]);
-
-    if (activeNoteRef.current?.id === id) {
-      const next = remaining[0];
-      if (next) await selectNote(next.id);
-      else clearActiveNote();
-    }
-  }, [clearActiveNote, flushNote, refreshArchived, refreshNotes, selectNote]);
+  }, [clearActiveNote, noteToPermanentlyDelete, refreshTrash, selectNote]);
 
   const setPinned = useCallback(async (id: string, isPinned: boolean) => {
     await flushNote(id);
@@ -773,22 +699,12 @@ export function App() {
     }
   }, [flushNote, refreshNotes]);
 
-  const unarchiveNote = useCallback(async (id: string) => {
-    const restored = await window.notes.unarchive(id);
-    await Promise.all([refreshNotes(), refreshArchived()]);
-    if (!restored) return;
-    setActiveView("notes");
-    activeNoteRef.current = restored;
-    setActiveNote(restored);
-    setSaveStatus(saveStatusesRef.current.get(restored.id) ?? "saved");
-  }, [refreshArchived, refreshNotes]);
-
   const afterImport = useCallback(async (firstNoteId?: string) => {
     const previews = await refreshNotes();
-    await Promise.all([refreshArchived(), refreshTrash()]);
+    await refreshTrash();
     const nextId = firstNoteId && previews.some((note) => note.id === firstNoteId) ? firstNoteId : previews[0]?.id;
     if (nextId) await selectNote(nextId);
-  }, [refreshArchived, refreshNotes, refreshTrash, selectNote]);
+  }, [refreshNotes, refreshTrash, selectNote]);
 
   const exportNote = useCallback(async (id: string) => {
     if (activeNoteRef.current?.id === id) await flushActiveNote();
@@ -818,7 +734,6 @@ export function App() {
       <ThemeInitializer />
       <NotesSidebar
         notes={notes}
-        archivedNotes={archivedNotes}
         trashNotes={trashNotes}
         tags={tags}
         selectedTagIds={selectedTagIds}
@@ -829,13 +744,10 @@ export function App() {
         onSetSort={(sort) => void setNoteSort(sort)}
         onToggleTagFilter={toggleTagFilter}
         onShowNotes={() => void showNotes()}
-        onShowArchive={() => void showArchive()}
         onShowTrash={() => void showTrash()}
         onSelect={(id) => void selectNote(id)}
         onRequestMoveToTrash={setNoteToTrash}
         onSetPinned={(id, isPinned) => void setPinned(id, isPinned)}
-        onArchiveNote={(id) => void archiveNote(id)}
-        onUnarchiveNote={(id) => void unarchiveNote(id)}
         onRestoreNote={(id) => void restoreNote(id)}
         onRequestPermanentDelete={setNoteToPermanentlyDelete}
         onExportNote={(id) => void exportNote(id)}
